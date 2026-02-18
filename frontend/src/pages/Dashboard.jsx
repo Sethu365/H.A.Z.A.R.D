@@ -1,130 +1,293 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import RiskGauge from "../components/RiskGauge";
-import TimelineChart from "../components/TimelineChart";
-import AlertsTable from "../components/AlertsTable";
-import { Shield, AlertTriangle, Activity } from "lucide-react";
-import { getSystemStats, getAnomalies, getRecentAlerts, getPrediction } from "../api";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { motion } from "framer-motion";
+import {
+  Activity,
+  Server,
+  Database,
+  Clock
+} from "lucide-react";
+import TimelineChart from "../components/TimelineChart";
+import Gauge from "../components/Gauge";
+import { useNavigate } from "react-router-dom";
+import settingsIcon from "../assets/settings.png";
+
+const API_BASE = "http://172.24.16.81:8001";
+const POLL_INTERVAL_MS = 1000;
+
+const safeGet = (url, fallback) =>
+  axios.get(url).then(r => r.data).catch(() => fallback);
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
-    cpuUsage: 0,
-    memoryUsage: 0,
-    networkTraffic: 0,
-    riskScore: 0,
-    prediction: 0,
-    xgbProba: 0,
-    reconstructionError: 0,
-    totalAlerts: 0,
-  });
+  const navigate = useNavigate();
 
-  const [metricsHistory, setMetricsHistory] = useState([]);
-  const [anomalies, setAnomalies] = useState([]);
-  const [alerts, setAlerts] = useState([]);
+  const [cpuHistory, setCpuHistory] = useState([]);
+  const [memHistory, setMemHistory] = useState([]);
+  const [kafkaTopics, setKafkaTopics] = useState({});
+  const [kafkaRates, setKafkaRates] = useState({});
+  const [mongoStats, setMongoStats] = useState({ count: 0, size_mb: 0 });
+  const [timescaleStats, setTimescaleStats] = useState({
+    total_table_size: "0 MB",
+    total_rows_logs: 0
+  });
+  const [dockerHealth, setDockerHealth] = useState({
+    docker_daemon: "unknown",
+    containers_running: 0
+  });
+  const [uptimeSeconds, setUptimeSeconds] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  /* ---------------- LOAD DATA ---------------- */
   useEffect(() => {
     const loadData = async () => {
-      try {
-        const [metricsRes, anomaliesRes, alertsRes, historyRes, predictionRes] = await Promise.all([
-          getSystemStats(),
-          getAnomalies(),
-          getRecentAlerts(),
-          axios.get("http://localhost:4000/api/metrics/history").catch(() => ({ data: [] })), // safe fallback
-          getPrediction(),
-        ]);
+      const [
+        cpuData,
+        memData,
+        topicsData,
+        ratesData,
+        mongoData,
+        timescaleData,
+        dockerData,
+        uptimeData
+      ] = await Promise.all([
+        safeGet(`${API_BASE}/system/cpu/timeseries`, []),
+        safeGet(`${API_BASE}/system/memory/timeseries`, []),
+        safeGet(`${API_BASE}/kafka/topics`, {}),
+        safeGet(`${API_BASE}/kafka/topic-rates`, {}),
+        safeGet(
+          `${API_BASE}/mongo/collection-stats?db=security_events_test&coll=events`,
+          { count: 0, size_mb: 0 }
+        ),
+        safeGet(`${API_BASE}/timescale/health`, {
+          total_table_size: "0 MB",
+          total_rows_logs: 0
+        }),
+        safeGet(`${API_BASE}/docker/health`, {
+          docker_daemon: "down",
+          containers_running: 0
+        }),
+        safeGet(`${API_BASE}/self/uptime`, { uptime_seconds: 0 })
+      ]);
 
-        setStats({
-          cpuUsage: Number(metricsRes.cpuUsage) || 0,
-          memoryUsage: Number(metricsRes.memoryUsage) || 0,
-          networkTraffic: Number(metricsRes.networkTraffic) || 0,
-          riskScore: predictionRes?.risk_score || 0,
-          prediction: predictionRes?.prediction || 0,
-          xgbProba: predictionRes?.xgb_proba || 0,
-          reconstructionError: predictionRes?.reconstruction_error || 0,
-          totalAlerts: alertsRes?.length || 0,
-        });
-
-        setMetricsHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
-        setAnomalies(Array.isArray(anomaliesRes) ? anomaliesRes : []);
-        setAlerts(Array.isArray(alertsRes) ? alertsRes : []);
-      } catch (err) {
-        console.error("❌ Error loading dashboard data:", err);
-      } finally {
-        setLoading(false);
-      }
+      setCpuHistory(cpuData);
+      setMemHistory(memData);
+      setKafkaTopics(topicsData);
+      setKafkaRates(ratesData);
+      setMongoStats(mongoData);
+      setTimescaleStats(timescaleData);
+      setDockerHealth(dockerData);
+      setUptimeSeconds(uptimeData.uptime_seconds ?? 0);
+      setLoading(false);
     };
 
     loadData();
-    const interval = setInterval(loadData, 10000); // refresh every 10s
+    const interval = setInterval(loadData, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 
-  const StatCard = ({ icon: Icon, title, value, color }) => (
-    <motion.div
-      initial={{ scale: 0.95, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      whileHover={{ scale: 1.02 }}
-      className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700 hover:border-gray-600 transition-all"
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-400 text-sm mb-1">{title}</p>
-          <p className={`text-2xl font-bold ${color}`}>{value}</p>
-        </div>
-        <div
-          className={`p-3 rounded-xl ${color.replace("text-", "bg-").replace("400", "500/20")}`}
-        >
-          <Icon className={`w-6 h-6 ${color}`} />
-        </div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-400">
+        Loading SOC dashboard…
       </div>
-    </motion.div>
+    );
+  }
+
+  /* ---------------- DERIVED DATA ---------------- */
+  const latestCpu = cpuHistory.at(-1)?.cpu ?? 0;
+  const latestMem = memHistory.at(-1)?.memory ?? 0;
+
+  const timelineData = cpuHistory.map((c, i) => ({
+    time: new Date(c.ts * 1000).toLocaleTimeString(),
+    cpu: Number(c.cpu.toFixed(2)),
+    memory: Number((memHistory[i]?.memory ?? 0).toFixed(2))
+  }));
+
+  const kafkaTableData = Object.entries(kafkaTopics).map(
+    ([topic, meta]) => ({
+      topic,
+      partitions: meta.partitions,
+      rate: kafkaRates[topic]?.messages_per_sec ?? 0
+    })
   );
 
-  if (loading)
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
+  const formatUptime = seconds => {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (d) return `${d}d ${h}h`;
+    if (h) return `${h}h ${m}m`;
+    if (m) return `${m}m`;
+    return `${seconds}s`;
+  };
 
+  /* ---------------- UI COMPONENTS ---------------- */
+  const StatCard = ({ icon: Icon, title, value, color }) => (
+    <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs text-gray-400 mb-1">{title}</p>
+          <p className={`text-xl font-semibold ${color}`}>{value}</p>
+        </div>
+        <Icon className={`w-6 h-6 ${color}`} />
+      </div>
+    </div>
+  );
+
+  const Section = ({ title, action, children }) => (
+    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+
+  /* ---------------- RENDER ---------------- */
   return (
-    <div className="space-y-6">
-      <motion.h1 className="text-3xl font-bold text-white">Dashboard Overview</motion.h1>
-      <p className="text-gray-400">Real-time system monitoring with ML anomaly detection</p>
-
-      {/* Stats */}
-      <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <StatCard icon={Activity} title="CPU Usage" value={`${stats.cpuUsage.toFixed(2)}%`} color="text-yellow-400" />
-        <StatCard icon={Shield} title="Memory Usage" value={`${stats.memoryUsage.toFixed(2)}%`} color="text-green-400" />
-        <StatCard icon={Shield} title="Network Traffic" value={`${stats.networkTraffic.toFixed(2)} MB`} color="text-purple-400" />
-        <StatCard icon={AlertTriangle} title="Total Alerts" value={stats.totalAlerts} color="text-red-400" />
-        <StatCard icon={Shield} title="Risk Score" value={stats.riskScore.toFixed(2)} color="text-pink-400" />
-      </motion.div>
-
-      {/* ML Results */}
-      <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700">
-        <h3 className="text-lg font-semibold text-white mb-4">ML Prediction</h3>
-        <p className="text-gray-300">
-          Status:{" "}
-          {stats.prediction === 0 ? (
-            <span className="text-green-400 font-semibold">✅ Normal</span>
-          ) : (
-            <span className="text-red-400 font-semibold">⚠️ Anomaly</span>
-          )}
+    <div className="space-y-8">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl font-semibold text-white">
+          Infrastructure Overview
+        </h1>
+        <p className="text-sm text-gray-400">
+          Live observability across compute, storage & messaging
         </p>
-        <p className="text-gray-300">XGB Probability: {(stats.xgbProba * 100).toFixed(2)}%</p>
-        <p className="text-gray-300">Reconstruction Error: {stats.reconstructionError.toFixed(2)}</p>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <RiskGauge score={stats.riskScore} />
-        </div>
-        <div className="lg:col-span-2">
-          <TimelineChart data={metricsHistory} />
-        </div>
+      {/* SYSTEM TIMELINE */}
+      <Section
+        title="System Metrics"
+        action={
+          <div className="flex items-center gap-2 text-sm text-gray-400">
+            <Clock className="w-4 h-4" />
+            Uptime:{" "}
+            <span className="text-white font-medium">
+              {formatUptime(uptimeSeconds)}
+            </span>
+          </div>
+        }
+      >
+        <TimelineChart data={timelineData} />
+      </Section>
+
+      {/* CPU / MEMORY */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Gauge label="CPU Utilization" value={latestCpu} />
+        <Gauge label="Memory Utilization" value={latestMem} />
       </div>
 
-      <AlertsTable alerts={alerts} />
+      {/* DATABASES */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Section
+          title="MongoDB"
+          action={
+            <img
+              src={settingsIcon}
+              onClick={() => navigate("/mongo-logs")}
+              className="w-8 h-8 cursor-pointer rounded-lg border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/15 transition"
+            />
+          }
+        >
+          <div className="grid grid-cols-2 gap-4">
+            <StatCard
+              icon={Database}
+              title="Documents"
+              value={mongoStats.count}
+              color="text-cyan-400"
+            />
+            <StatCard
+              icon={Database}
+              title="Collection Size"
+              value={`${mongoStats.size_mb} MB`}
+              color="text-indigo-400"
+            />
+          </div>
+        </Section>
+
+        <Section
+          title="TimescaleDB"
+          action={
+            <img
+              src={settingsIcon}
+              onClick={() => navigate("/timescale-logs")}
+              className="w-8 h-8 cursor-pointer rounded-lg border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/15 transition"
+            />
+          }
+        >
+          <div className="grid grid-cols-2 gap-4">
+            <StatCard
+              icon={Database}
+              title="Total Rows"
+              value={timescaleStats.total_rows_logs}
+              color="text-emerald-400"
+            />
+            <StatCard
+              icon={Database}
+              title="Total Size"
+              value={timescaleStats.total_table_size}
+              color="text-emerald-300"
+            />
+          </div>
+        </Section>
+      </div>
+
+      {/* DOCKER */}
+      <Section
+        title="Docker Runtime"
+        action={
+          <img
+            src={settingsIcon}
+            onClick={() => navigate("/docker-settings")}
+            className="w-8 h-8 cursor-pointer rounded-lg border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/15 transition"
+          />
+        }
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            icon={Server}
+            title="Daemon"
+            value={dockerHealth.docker_daemon}
+            color={
+              dockerHealth.docker_daemon === "running"
+                ? "text-green-400"
+                : "text-red-400"
+            }
+          />
+          <StatCard
+            icon={Activity}
+            title="Running Containers"
+            value={dockerHealth.containers_running}
+            color="text-cyan-400"
+          />
+        </div>
+      </Section>
+
+      {/* KAFKA */}
+      <Section title="Kafka Topics">
+        <table className="w-full text-sm text-gray-300">
+          <thead>
+            <tr className="border-b border-gray-800">
+              <th className="text-left py-2">Topic</th>
+              <th className="text-right py-2">Partitions</th>
+              <th className="text-right py-2">Ingest Rate (msg/s)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {kafkaTableData.map(row => (
+              <tr key={row.topic} className="border-b border-gray-800/50">
+                <td className="py-2">{row.topic}</td>
+                <td className="py-2 text-right">{row.partitions}</td>
+                <td className="py-2 text-right">
+                  {row.rate.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
     </div>
   );
 };

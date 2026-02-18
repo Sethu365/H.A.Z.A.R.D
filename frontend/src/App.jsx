@@ -140,10 +140,15 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import SplashScreen from "./components/SplashScreen";
 import Dashboard from "./pages/Dashboard";
-import UserBehavior from "./pages/UserBehavior";
+import Clients from "./pages/Clients";
 import Anomalies from "./pages/Anomalies";
 import Settings from "./pages/Settings";
 import DashboardLayout from "./layouts/DashboardLayout";
+import DockerSettings from "./pages/DockerSettings";
+import TimescaleLogs from "./pages/TimescaleLogs";
+import MongoLogs from "./pages/MongoLogs";
+import ClientDetails from "./pages/ClientDetails";
+
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -158,7 +163,11 @@ function App() {
             {/* Main dashboard layout with sidebar + topbar */}
             <Route path="/" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />
-              <Route path="user-behavior" element={<UserBehavior />} />
+              <Route path="docker-settings" element={<DockerSettings />} />
+              <Route path="timescale-logs" element={<TimescaleLogs />} />
+              <Route path="mongo-logs" element={<MongoLogs />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/clients/:hostname" element={<ClientDetails />} />
               <Route path="anomalies" element={<Anomalies />} />
               <Route path="settings" element={<Settings />} />
             </Route>
@@ -170,4 +179,5 @@ function App() {
 }
 
 export default App;
+
 

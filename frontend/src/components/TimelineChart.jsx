@@ -1,79 +1,98 @@
 import React from "react";
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
   YAxis,
-  Tooltip,
   CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 
 const TimelineChart = ({ data = [] }) => {
-  // Map DB rows → chart-friendly format
- const chartData = data.map((row) => ({
-  time: row.created_at
-    ? new Date(row.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : "N/A",
-  cpu: parseFloat(row.cpu_usage) || 0,
-  memory: parseFloat(row.memory_usage) || 0,
-  network: parseFloat(row.network_traffic) || 0,
-  risk: parseFloat(row.risk_score) || 0,
-}));
-
+  if (!data.length) {
+    return (
+      <div className="h-[300px] flex items-center justify-center text-sm text-gray-500">
+        No time-series data available
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700">
-      <h3 className="text-lg font-semibold text-white mb-4">
-        System Metrics Over Time
-      </h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-          <XAxis dataKey="time" stroke="#aaa" />
-          <YAxis stroke="#aaa" />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#1f2937",
-              border: "1px solid #374151",
-              color: "#fff",
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="cpu"
-            stroke="#facc15"
-            strokeWidth={2}
-            dot={false}
-            name="CPU %"
-          />
-          <Line
-            type="monotone"
-            dataKey="memory"
-            stroke="#22c55e"
-            strokeWidth={2}
-            dot={false}
-            name="Memory %"
-          />
-          <Line
-            type="monotone"
-            dataKey="network"
-            stroke="#a855f7"
-            strokeWidth={2}
-            dot={false}
-            name="Network MB"
-          />
-          <Line
-            type="monotone"
-            dataKey="risk"
-            stroke="#ec4899"
-            strokeWidth={2}
-            dot={false}
-            name="Risk Score"
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart
+        data={data}
+        margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+      >
+        {/* GRID */}
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#1f2937"
+        />
+
+        {/* X AXIS */}
+        <XAxis
+          dataKey="time"
+          tick={{ fill: "#9ca3af", fontSize: 11 }}
+          tickLine={false}
+          axisLine={{ stroke: "#374151" }}
+          minTickGap={24}
+        />
+
+        {/* Y AXIS */}
+        <YAxis
+          domain={[0, 100]}
+          tick={{ fill: "#9ca3af", fontSize: 11 }}
+          tickLine={false}
+          axisLine={{ stroke: "#374151" }}
+          width={40}
+          label={{
+            value: "Utilization (%)",
+            angle: -90,
+            position: "insideLeft",
+            fill: "#9ca3af",
+            fontSize: 11,
+          }}
+        />
+
+        {/* TOOLTIP */}
+        <Tooltip
+          cursor={{ stroke: "#374151", strokeDasharray: "3 3" }}
+          contentStyle={{
+            backgroundColor: "#020617",
+            border: "1px solid #374151",
+            borderRadius: 8,
+            fontSize: 12,
+          }}
+          labelStyle={{
+            color: "#9ca3af",
+            marginBottom: 4,
+          }}
+        />
+
+        {/* CPU LINE */}
+        <Line
+          type="monotone"
+          dataKey="cpu"
+          name="CPU"
+          stroke="#facc15"
+          strokeWidth={2}
+          dot={false}
+          isAnimationActive={false}
+        />
+
+        {/* MEMORY LINE */}
+        <Line
+          type="monotone"
+          dataKey="memory"
+          name="Memory"
+          stroke="#4ade80"
+          strokeWidth={2}
+          dot={false}
+          isAnimationActive={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
   );
 };
 

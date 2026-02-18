@@ -1,57 +1,101 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import eyeLogo from "../assets/eye.png"; // your eye logo
+import eyeLogo from "../assets/eye.png";
 
 const SplashScreen = ({ onFinish }) => {
-  const [show, setShow] = useState(true);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setShow(false);
-      if (onFinish) onFinish();
-    }, 2500); // show splash for 2.5s
+      setVisible(false);
+      onFinish?.();
+    }, 2000); // shorter, SOC-friendly
+
     return () => clearTimeout(timer);
   }, [onFinish]);
 
   return (
     <AnimatePresence>
-      {show && (
+      {visible && (
         <motion.div
-          className="fixed inset-0 flex items-center justify-center bg-gray-900 z-50"
+          className="
+            fixed inset-0 z-50
+            flex items-center justify-center
+            bg-[#020617]
+          "
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <div className="flex flex-col items-center">
-            {/* Logo with Zoom + Blur Reveal */}
-            <motion.img
-              src={eyeLogo}
-              alt="H.A.Z.A.R.D Logo"
-              className="w-48 h-48 object-contain mb-8"
-              initial={{ scale: 2, opacity: 0, filter: "blur(20px)" }}
-              animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-            />
+            {/* Logo */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="relative"
+            >
+              <img
+                src={eyeLogo}
+                alt="AURORA"
+                className="w-32 h-32 object-contain"
+              />
+
+              {/* Subtle AI glow */}
+              <div className="absolute inset-0 rounded-full bg-cyan-400/20 blur-2xl -z-10" />
+            </motion.div>
 
             {/* Title */}
             <motion.h1
-              className="text-4xl font-extrabold bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent"
-              initial={{ opacity: 0, y: 10 }}
+              className="
+                mt-6
+                text-3xl
+                font-semibold
+                tracking-widest
+                text-white
+              "
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1, duration: 0.8 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
             >
-              H.A.Z.A.R.D
+              A.U.R.O.R.A
             </motion.h1>
 
             {/* Subtitle */}
             <motion.p
-              className="text-gray-400 text-lg mt-3"
+              className="
+                mt-2
+                text-sm
+                text-gray-400
+                tracking-wide
+              "
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.4, duration: 0.8 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
             >
-              Anomaly Detection System
+              AI Security Operations Platform
             </motion.p>
+
+            {/* Loading indicator */}
+            <motion.div
+              className="mt-6 flex gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+            >
+              {[0, 1, 2].map(i => (
+                <motion.span
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-cyan-400"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Infinity,
+                    delay: i * 0.15
+                  }}
+                />
+              ))}
+            </motion.div>
           </div>
         </motion.div>
       )}
