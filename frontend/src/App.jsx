@@ -148,6 +148,8 @@ import DockerSettings from "./pages/DockerSettings";
 import TimescaleLogs from "./pages/TimescaleLogs";
 import MongoLogs from "./pages/MongoLogs";
 import ClientDetails from "./pages/ClientDetails";
+import ClientCommandExecution from "./pages/ClientCommandExecution";
+import ProcessTree from "./pages/ProcessTree";
 
 
 function App() {
@@ -168,6 +170,8 @@ function App() {
               <Route path="mongo-logs" element={<MongoLogs />} />
               <Route path="/clients" element={<Clients />} />
               <Route path="/clients/:hostname" element={<ClientDetails />} />
+              <Route path="/clients/:hostname/control" element={<ClientCommandExecution />} />
+              <Route path="/clients/:hostname/process-tree" element={<ProcessTree />} />
               <Route path="anomalies" element={<Anomalies />} />
               <Route path="settings" element={<Settings />} />
             </Route>
