@@ -10,7 +10,7 @@ import {
 import TimelineChart from "../components/TimelineChart";
 import Gauge from "../components/Gauge";
 import { useNavigate } from "react-router-dom";
-import settingsIcon from "../assets/settings.png";
+import TimelineAreaChart from "../components/TimelineAreaChart";
 
 const API_BASE = "http://172.24.16.81:8001";
 const POLL_INTERVAL_MS = 1000;
@@ -34,7 +34,7 @@ const Dashboard = () => {
     docker_daemon: "unknown",
     containers_running: 0
   });
-  const [uptimeSeconds, setUptimeSeconds] = useState(0);
+  const [uptime, setUptime] = useState("0m");
   const [loading, setLoading] = useState(true);
 
   /* ---------------- LOAD DATA ---------------- */
@@ -66,7 +66,10 @@ const Dashboard = () => {
           docker_daemon: "down",
           containers_running: 0
         }),
-        safeGet(`${API_BASE}/self/uptime`, { uptime_seconds: 0 })
+        safeGet(`${API_BASE}/system/uptime`, {
+          uptime_seconds: 0,
+          formatted: "0m"
+        })
       ]);
 
       setCpuHistory(cpuData);
@@ -76,7 +79,7 @@ const Dashboard = () => {
       setMongoStats(mongoData);
       setTimescaleStats(timescaleData);
       setDockerHealth(dockerData);
-      setUptimeSeconds(uptimeData.uptime_seconds ?? 0);
+      setUptime(uptimeData.formatted ?? "0m");
       setLoading(false);
     };
 
@@ -111,15 +114,15 @@ const Dashboard = () => {
     })
   );
 
-  const formatUptime = seconds => {
-    const d = Math.floor(seconds / 86400);
-    const h = Math.floor((seconds % 86400) / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    if (d) return `${d}d ${h}h`;
-    if (h) return `${h}h ${m}m`;
-    if (m) return `${m}m`;
-    return `${seconds}s`;
-  };
+  // const formatUptime = seconds => {
+  //   const d = Math.floor(seconds / 86400);
+  //   const h = Math.floor((seconds % 86400) / 3600);
+  //   const m = Math.floor((seconds % 3600) / 60);
+  //   if (d) return `${d}d ${h}h`;
+  //   if (h) return `${h}h ${m}m`;
+  //   if (m) return `${m}m`;
+  //   return `${seconds}s`;
+  // };
 
   /* ---------------- UI COMPONENTS ---------------- */
   const StatCard = ({ icon: Icon, title, value, color }) => (
@@ -165,12 +168,12 @@ const Dashboard = () => {
             <Clock className="w-4 h-4" />
             Uptime:{" "}
             <span className="text-white font-medium">
-              {formatUptime(uptimeSeconds)}
+              {uptime}
             </span>
           </div>
         }
       >
-        <TimelineChart data={timelineData} />
+        <TimelineAreaChart data={timelineData} />
       </Section>
 
       {/* CPU / MEMORY */}
@@ -184,11 +187,7 @@ const Dashboard = () => {
         <Section
           title="MongoDB"
           action={
-            <img
-              src={settingsIcon}
-              onClick={() => navigate("/mongo-logs")}
-              className="w-8 h-8 cursor-pointer rounded-lg border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/15 transition"
-            />
+            <i className="bi bi-gear"  onClick={() => navigate("/docker-settings")}></i>
           }
         >
           <div className="grid grid-cols-2 gap-4">
@@ -210,11 +209,7 @@ const Dashboard = () => {
         <Section
           title="TimescaleDB"
           action={
-            <img
-              src={settingsIcon}
-              onClick={() => navigate("/timescale-logs")}
-              className="w-8 h-8 cursor-pointer rounded-lg border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/15 transition"
-            />
+            <i className="bi bi-gear"  onClick={() => navigate("/docker-settings")}></i>
           }
         >
           <div className="grid grid-cols-2 gap-4">
@@ -231,18 +226,14 @@ const Dashboard = () => {
               color="text-emerald-300"
             />
           </div>
-        </Section>
+        </Section> 
       </div>
 
       {/* DOCKER */}
       <Section
         title="Docker Runtime"
         action={
-          <img
-            src={settingsIcon}
-            onClick={() => navigate("/docker-settings")}
-            className="w-8 h-8 cursor-pointer rounded-lg border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/15 transition"
-          />
+          <i className="bi bi-gear"  onClick={() => navigate("/docker-settings")}></i>
         }
       >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

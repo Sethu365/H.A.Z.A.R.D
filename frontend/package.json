@@ -12,6 +12,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.12.2",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
     "framer-motion": "^11.11.17",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.344.0",
