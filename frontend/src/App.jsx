@@ -150,7 +150,7 @@ import MongoLogs from "./pages/MongoLogs";
 import ClientDetails from "./pages/ClientDetails";
 import ClientCommandExecution from "./pages/ClientCommandExecution";
 import ProcessTree from "./pages/ProcessTree";
-
+import FileExplorer from "./pages/FileExplorer";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -172,6 +172,7 @@ function App() {
               <Route path="/clients/:hostname" element={<ClientDetails />} />
               <Route path="/clients/:hostname/control" element={<ClientCommandExecution />} />
               <Route path="/clients/:hostname/process-tree" element={<ProcessTree />} />
+              <Route path="/clients/:hostname/file-explorer" element={<FileExplorer />} />
               <Route path="anomalies" element={<Anomalies />} />
               <Route path="settings" element={<Settings />} />
             </Route>

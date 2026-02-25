@@ -11,8 +11,10 @@ import {
   Info,
   Terminal,
   GitBranch,
+  FolderOpen,
   ChevronLeft
 } from "lucide-react";
+import { path } from "framer-motion/client";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -34,6 +36,7 @@ const Sidebar = () => {
     { path: `/clients/${hostname}`, icon: Info, label: "Client Details", end: true },
     { path: `/clients/${hostname}/control`, icon: Terminal, label: "Run Commands" },
     { path: `/clients/${hostname}/process-tree`, icon: GitBranch, label: "Process Tree" },
+    { path: `/clients/${hostname}/file-explorer`, icon: FolderOpen, label: "File Explorer" }
   ] : [];
 
   const activeNavItems = hostname ? clientNavItems : mainNavItems;
