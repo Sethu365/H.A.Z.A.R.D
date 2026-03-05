@@ -187,7 +187,7 @@ const Dashboard = () => {
         <Section
           title="MongoDB"
           action={
-            <i className="bi bi-gear"  onClick={() => navigate("/docker-settings")}></i>
+            <i className="bi bi-gear"  onClick={() => navigate("/mongo-logs")}></i>
           }
         >
           <div className="grid grid-cols-2 gap-4">
@@ -209,7 +209,7 @@ const Dashboard = () => {
         <Section
           title="TimescaleDB"
           action={
-            <i className="bi bi-gear"  onClick={() => navigate("/docker-settings")}></i>
+            <i className="bi bi-gear"  onClick={() => navigate("/timescale-logs")}></i>
           }
         >
           <div className="grid grid-cols-2 gap-4">
