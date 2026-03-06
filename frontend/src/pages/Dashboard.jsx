@@ -5,7 +5,9 @@ import {
   Activity,
   Server,
   Database,
-  Clock
+  Clock, 
+  Radar,
+  Orbit
 } from "lucide-react";
 import TimelineChart from "../components/TimelineChart";
 import Gauge from "../components/Gauge";
@@ -151,14 +153,13 @@ const Dashboard = () => {
   return (
     <div className="space-y-8">
       {/* HEADER */}
-      <div>
-        <h1 className="text-2xl font-semibold text-white">
-          Infrastructure Overview
-        </h1>
-        <p className="text-sm text-gray-400">
-          Live observability across compute, storage & messaging
-        </p>
-      </div>
+      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+        <div className="flex items-center gap-2 mb-3">
+           <Orbit size={14} className="text-cyan-500 animate-pulse" />
+           <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">A.U.R.O.R.A</span>
+        </div>
+        <h1 className="text-5xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">INFRASTRUCTURE_OVERVIEW</h1>
+      </motion.div>
 
       {/* SYSTEM TIMELINE */}
       <Section

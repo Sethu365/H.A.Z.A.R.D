@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { Server, Activity, Terminal } from "lucide-react";
+import { Server, Activity, Terminal, Orbit } from "lucide-react";
 
 import Gauge from "../components/Gauge";
 import TimelineChart from "../components/TimelineChart";
@@ -143,13 +143,13 @@ const DockerSettings = () => {
 
       {/* TIMELINE + GAUGES */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 bg-gray-900/60 border border-gray-800 rounded-xl p-6">
-          <div className="flex items-center gap-2 text-sm text-gray-300 mb-4">
-            <Activity className="w-4 h-4 text-cyan-400" />
-            Docker Resource Timeline
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <div className="flex items-center gap-2 mb-3">
+             <Orbit size={14} className="text-cyan-500 animate-pulse" />
+             <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">A.U.R.O.R.A</span>
           </div>
-          <TimelineChart data={timeline} />
-        </div>
+          <h1 className="text-4xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">DOCKER_SETTINGS</h1>
+        </motion.div>
 
         <div className="flex flex-col gap-6">
           <Gauge label="Cluster CPU Utilization" value={aggregate.cpu_percent} />

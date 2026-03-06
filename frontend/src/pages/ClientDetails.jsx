@@ -103,7 +103,7 @@ const formatPulse = (timestamp) => {
             <div className="p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
               <Server className="text-cyan-400" size={24} />
             </div>
-            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">
+            <h1 className="text-5xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">
               {hostname}
             </h1>
           </div>

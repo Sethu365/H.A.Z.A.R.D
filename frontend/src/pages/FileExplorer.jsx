@@ -161,7 +161,7 @@ const FileExplorer = () => {
         <header className="px-8 py-6 border-b border-slate-800 bg-slate-900/10">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-black text-white uppercase italic tracking-tighter flex items-center gap-3">
+              <h1 className="text-3xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">
                 <HardDrive className="text-cyan-500" /> Remote Explorer
               </h1>
               <div className="flex items-center gap-2 mt-1">

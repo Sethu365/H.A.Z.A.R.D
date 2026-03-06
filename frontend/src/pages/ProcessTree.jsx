@@ -162,7 +162,7 @@ const ProcessTree = () => {
       <div className="flex-1 flex flex-col min-w-0 border-r border-slate-800">
         <header className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/10">
           <div className="flex items-center gap-6">
-            <h1 className="text-xl font-black text-white uppercase italic tracking-widest">Timeline</h1>
+            <h1 className="text-3xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">Timeline</h1>
             <div className="flex bg-black border border-slate-800 rounded-lg p-1">
                <button onClick={() => setViewMode('table')} className={`px-4 py-1.5 text-[10px] font-bold rounded uppercase transition-all ${viewMode === 'table' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-white'}`}>Table</button>
                <button onClick={() => setViewMode('tree')} disabled={!selectedNode} className={`px-4 py-1.5 text-[10px] font-bold rounded uppercase transition-all ${viewMode === 'tree' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-500 hover:text-white disabled:opacity-30'}`}>Ancestry Tree</button>

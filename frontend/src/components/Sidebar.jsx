@@ -12,7 +12,8 @@ import {
   Terminal,
   GitBranch,
   FolderOpen,
-  ChevronLeft
+  ChevronLeft,
+  Command,
 } from "lucide-react";
 import { path } from "framer-motion/client";
 
@@ -28,7 +29,9 @@ const Sidebar = () => {
     { path: "/", icon: Activity, label: "Dashboard" },
     { path: "/clients", icon: Users, label: "Clients" },
     { path: "/anomalies", icon: AlertTriangle, label: "Anomalies" },
-    { path: "/settings", icon: Settings, label: "Settings" }
+    { path: "/scraper", icon: Command, label: "Intel" },
+    { path: "/settings", icon: Settings, label: "Settings" },
+    
   ];
 
   // Specific Client Navigation

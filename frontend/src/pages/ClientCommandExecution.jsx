@@ -113,7 +113,7 @@ const ClientCommandExecution = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
             <Terminal className="text-cyan-500" />
-            <h2 className="text-xl font-black text-white italic uppercase tracking-widest">Command Console: {hostname}</h2>
+            <h2 className="text-3xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">Command Console: {hostname}</h2>
         </div>
         <div className="flex items-center gap-2 px-3 py-1 bg-gray-900 border border-gray-800 rounded-lg">
             <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`} />
@@ -154,8 +154,8 @@ const ClientCommandExecution = () => {
                     {/* <SmallActionButton label="Read File" icon={<FileText size={14}/>} onClick={() => handleCommand('read_file')} active={isOnline} />
                     <SmallActionButton label="List Files" icon={<Search size={14}/>} onClick={() => handleCommand('list_files')} active={isOnline} /> */}
                     <SmallActionButton label="Ports" icon={<Globe size={14}/>} onClick={() => handleCommand('open_ports')} active={isOnline} />
-                    <SmallActionButton label="Agent Info" icon={<Info size={14}/>} onClick={() => handleCommand('agent_info')} active={isOnline} />
-                    <SmallActionButton label="Tree" icon={<GitBranch size={14}/>} onClick={() => handleCommand('process_tree')} active={isOnline} />
+                    {/* <SmallActionButton label="Agent Info" icon={<Info size={14}/>} onClick={() => handleCommand('agent_info')} active={isOnline} />
+                    <SmallActionButton label="Tree" icon={<GitBranch size={14}/>} onClick={() => handleCommand('process_tree')} active={isOnline} />*/}
                 </div>
             </div>
 
