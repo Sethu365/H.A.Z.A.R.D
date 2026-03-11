@@ -185,7 +185,7 @@ const Dashboard = () => {
 
       {/* DATABASES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Section
+        {/* <Section
           title="MongoDB"
           action={
             <i className="bi bi-gear"  onClick={() => navigate("/mongo-logs")}></i>
@@ -205,7 +205,7 @@ const Dashboard = () => {
               color="text-indigo-400"
             />
           </div>
-        </Section>
+        </Section> */}
 
         <Section
           title="TimescaleDB"
@@ -228,7 +228,7 @@ const Dashboard = () => {
             />
           </div>
         </Section> 
-      </div>
+      
 
       {/* DOCKER */}
       <Section
@@ -237,7 +237,7 @@ const Dashboard = () => {
           <i className="bi bi-gear"  onClick={() => navigate("/docker-settings")}></i>
         }
       >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <StatCard
             icon={Server}
             title="Daemon"
@@ -256,6 +256,7 @@ const Dashboard = () => {
           />
         </div>
       </Section>
+      </div>
 
       {/* KAFKA */}
       <Section title="Kafka Topics">

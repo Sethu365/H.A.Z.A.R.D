@@ -16,7 +16,7 @@
     "bootstrap-icons": "^1.13.1",
     "framer-motion": "^11.11.17",
     "jwt-decode": "^4.0.0",
-    "lucide-react": "^0.344.0",
+    "lucide-react": "^0.577.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",

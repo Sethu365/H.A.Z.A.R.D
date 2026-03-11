@@ -12,8 +12,8 @@ import {
 import { Database, Activity, Orbit } from "lucide-react";
 
 const API_BASE = "http://172.24.16.81:8001";
-const DB_NAME = "security_events_test";
-const COLLECTION = "events";
+const DB_NAME = "client_logs";
+const COLLECTION = "client_raw_events";
 
 const MongoLogs = () => {
   const [logs, setLogs] = useState([]);

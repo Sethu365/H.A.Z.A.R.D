@@ -14,6 +14,7 @@ import {
   FolderOpen,
   ChevronLeft,
   Command,
+  OctagonAlert,
 } from "lucide-react";
 import { path } from "framer-motion/client";
 
@@ -39,7 +40,8 @@ const Sidebar = () => {
     { path: `/clients/${hostname}`, icon: Info, label: "Client Details", end: true },
     { path: `/clients/${hostname}/control`, icon: Terminal, label: "Run Commands" },
     { path: `/clients/${hostname}/process-tree`, icon: GitBranch, label: "Process Tree" },
-    { path: `/clients/${hostname}/file-explorer`, icon: FolderOpen, label: "File Explorer" }
+    { path: `/clients/${hostname}/file-explorer`, icon: FolderOpen, label: "File Explorer" },
+    { path: `/clients/${hostname}/client-anomaly`, icon: OctagonAlert, label: "Client Anomaly" }
   ] : [];
 
   const activeNavItems = hostname ? clientNavItems : mainNavItems;

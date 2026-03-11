@@ -17,6 +17,8 @@ import FileExplorer from "./pages/FileExplorer";
 import AnomalyHistory from "./pages/AnomalyHistory";
 import UnderDevelopment from "./components/UnderDevelopment";
 import Intel from "./pages/Intel";
+import ClientAnomaly from "./pages/AnomaliesClients";
+import ClientAnomalyHistory from "./pages/AnomalyClientsHistory";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -39,6 +41,8 @@ function App() {
               <Route path="/clients/:hostname/control" element={<ClientCommandExecution />} />
               <Route path="/clients/:hostname/process-tree" element={<ProcessTree />} />
               <Route path="/clients/:hostname/file-explorer" element={<FileExplorer />} />
+              <Route path="/clients/:hostname/client-anomaly" element={<ClientAnomaly />} />
+              <Route path="/clients/:hostname/client-anomaly/history" element={<ClientAnomalyHistory />} />
               <Route path="anomalies" element={<Anomalies />} />
               <Route path="anomalies/history" element={<AnomalyHistory />} />
               <Route path="settings" element={<Settings />} />

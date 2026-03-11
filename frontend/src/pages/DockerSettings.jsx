@@ -130,32 +130,66 @@ const DockerSettings = () => {
   ============================== */
   return (
     <div className="space-y-8">
+{/* 1. TOP HEADING AREA */}
+<div className="mb-8 px-4">
+  <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+    <div className="flex items-center gap-2 mb-3">
+      <Orbit size={14} className="text-cyan-500 animate-pulse" />
+      <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">A.U.R.O.R.A</span>
+    </div>
+    <h1 className="text-4xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">
+      DOCKER_SETTINGS
+    </h1>
+  </motion.div>
+</div>
 
-      {/* HEADER */}
-      <div>
-        <h1 className="text-2xl font-semibold text-white">
-          Docker Runtime Control
-        </h1>
-        <p className="text-sm text-gray-400">
-          Monitor and manage container workloads
-        </p>
+{/* 2. MAIN HUD GRID (Chart Left, Gauges Right) */}
+<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  
+  {/* LEFT SIDE: Aggregated Cluster Chart (Spans 2 columns) */}
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }} 
+    animate={{ opacity: 1, y: 0 }}
+    className="lg:col-span-2 bg-gray-900/60 border border-gray-800 rounded-2xl p-6 backdrop-blur-md"
+  >
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-2 text-sm font-bold text-gray-300 uppercase tracking-widest">
+        <Activity className="w-4 h-4 text-cyan-400" />
+        Cluster performance history
       </div>
-
-      {/* TIMELINE + GAUGES */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <div className="flex items-center gap-2 mb-3">
-             <Orbit size={14} className="text-cyan-500 animate-pulse" />
-             <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">A.U.R.O.R.A</span>
-          </div>
-          <h1 className="text-4xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">DOCKER_SETTINGS</h1>
-        </motion.div>
-
-        <div className="flex flex-col gap-6">
-          <Gauge label="Cluster CPU Utilization" value={aggregate.cpu_percent} />
-          <Gauge label="Cluster Memory Utilization" value={aggregate.memory_percent} />
-        </div>
+      <div className="flex gap-4 text-[10px] font-mono">
+         <span className="flex items-center gap-1"><div className="w-2 h-2 bg-cyan-500 rounded-full"/> CPU</span>
+         <span className="flex items-center gap-1"><div className="w-2 h-2 bg-purple-500 rounded-full"/> MEM</span>
       </div>
+    </div>
+    
+    <div className="h-[350px]"> {/* Increased height for better visibility on wide layout */}
+      <TimelineChart data={timeline} />
+    </div>
+  </motion.div>
+
+  {/* RIGHT SIDE: Real-time Gauges (Stacked vertically) */}
+  <div className="flex flex-col gap-6">
+    <Gauge label="CPU Load" value={aggregate.cpu_percent} color="#22d3ee" />
+    <Gauge label="Memory Load" value={aggregate.memory_percent} color="#a855f7" />
+    {/* <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex-1 bg-gray-900/40 border border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center shadow-xl"
+    >
+      
+    </motion.div> */}
+
+    {/* <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 0.1 }}
+      className="flex-1 bg-gray-900/40 border border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center shadow-xl"
+    >
+      
+    </motion.div> */}
+  </div>
+</div>
 
       {/* CONTAINERS */}
       <motion.div
