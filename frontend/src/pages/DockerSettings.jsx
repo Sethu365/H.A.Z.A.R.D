@@ -1,36 +1,27 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { motion } from "framer-motion";
-import { Server, Activity, Terminal, Orbit } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Server, Activity, Terminal, XCircle, ChevronRight, BarChart2 } from "lucide-react";
 
 import Gauge from "../components/Gauge";
 import TimelineChart from "../components/TimelineChart";
 import MiniAreaChart from "../components/MiniAreaChart";
+import Topbar from "../components/Topbar";
 
 const API_BASE = "http://172.24.16.81:8001";
 const POLL_INTERVAL = 3000;
 
 const DockerSettings = () => {
-  const [aggregate, setAggregate] = useState({
-    cpu_percent: 0,
-    memory_percent: 0,
-  });
-
+  const [aggregate, setAggregate] = useState({ cpu_percent: 0, memory_percent: 0 });
   const [containers, setContainers] = useState([]);
   const [containerStats, setContainerStats] = useState([]);
-
   const [timeline, setTimeline] = useState([]);
   const [containerTimeline, setContainerTimeline] = useState({});
   const [containerMemTimeline, setContainerMemTimeline] = useState({});
-
   const [logs, setLogs] = useState("");
   const [selectedContainer, setSelectedContainer] = useState(null);
-
   const mounted = useRef(false);
 
-  /* ==============================
-     LOAD DATA
-  ============================== */
   const loadData = async () => {
     try {
       const [aggRes, contRes, statsRes] = await Promise.all([
@@ -43,7 +34,6 @@ const DockerSettings = () => {
       setContainers(contRes.data);
       setContainerStats(statsRes.data);
 
-      // CPU TIMELINE (per container)
       setContainerTimeline((prev) => {
         const updated = { ...prev };
         statsRes.data.forEach((s) => {
@@ -53,66 +43,43 @@ const DockerSettings = () => {
         return updated;
       });
 
-      // MEMORY TIMELINE (per container)
       setContainerMemTimeline((prev) => {
         const updated = { ...prev };
         statsRes.data.forEach((s) => {
-          const memPercent =
-            s.memory_limit_mb
-              ? (s.memory_usage_mb / s.memory_limit_mb) * 100
-              : 0;
-
+          const memPercent = s.memory_limit_mb ? (s.memory_usage_mb / s.memory_limit_mb) * 100 : 0;
           if (!updated[s.name]) updated[s.name] = [];
           updated[s.name] = [...updated[s.name], memPercent].slice(-20);
         });
         return updated;
       });
 
-      // CLUSTER TIMELINE
       setTimeline((prev) => {
-        const next = [
-          ...prev,
-          {
-            time: new Date().toLocaleTimeString(),
-            cpu: aggRes.data.cpu_percent,
-            memory: aggRes.data.memory_percent,
-          },
-        ];
+        const next = [...prev, {
+          time: new Date().toLocaleTimeString(),
+          cpu: aggRes.data.cpu_percent,
+          memory: aggRes.data.memory_percent,
+        }];
         return next.slice(-30);
       });
-
     } catch (err) {
       console.error("❌ Docker fetch failed", err);
     }
   };
 
-  /* ==============================
-     EFFECTS
-  ============================== */
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, POLL_INTERVAL);
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    mounted.current = true;
-  }, []);
+  useEffect(() => { mounted.current = true; }, []);
 
-  /* ==============================
-     ACTIONS
-  ============================== */
   const toggleContainer = async (c) => {
     try {
-      if (c.status === "running") {
-        await axios.post(`${API_BASE}/docker/stop/${c.name}`);
-      } else {
-        await axios.post(`${API_BASE}/docker/start/${c.name}`);
-      }
+      if (c.status === "running") { await axios.post(`${API_BASE}/docker/stop/${c.name}`); }
+      else { await axios.post(`${API_BASE}/docker/start/${c.name}`); }
       loadData();
-    } catch (err) {
-      console.error("Container action failed", err);
-    }
+    } catch (err) { console.error("Action failed", err); }
   };
 
   const viewLogs = async (name) => {
@@ -120,203 +87,136 @@ const DockerSettings = () => {
       const res = await axios.get(`${API_BASE}/docker/logs/${name}`);
       setSelectedContainer(name);
       setLogs(res.data.logs || "");
-    } catch {
-      setLogs("Failed to load logs");
-    }
+    } catch { setLogs("Failed to load logs"); }
   };
 
-  /* ==============================
-     RENDER
-  ============================== */
   return (
-    <div className="space-y-8">
-{/* 1. TOP HEADING AREA */}
-<div className="mb-8 px-4">
-  <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-    <div className="flex items-center gap-2 mb-3">
-      <Orbit size={14} className="text-cyan-500 animate-pulse" />
-      <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">A.U.R.O.R.A</span>
-    </div>
-    <h1 className="text-4xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">
-      DOCKER_SETTINGS
-    </h1>
-  </motion.div>
-</div>
+    <div className="min-h-screen bg-[#020617] text-white">
+      {/* 1. RESPONSIVE TOPBAR */}
+      <Topbar name="Docker Hub" desc="Virtual_Environment_Management" />
 
-{/* 2. MAIN HUD GRID (Chart Left, Gauges Right) */}
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-  
-  {/* LEFT SIDE: Aggregated Cluster Chart (Spans 2 columns) */}
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }} 
-    animate={{ opacity: 1, y: 0 }}
-    className="lg:col-span-2 bg-gray-900/60 border border-gray-800 rounded-2xl p-6 backdrop-blur-md"
-  >
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-2 text-sm font-bold text-gray-300 uppercase tracking-widest">
-        <Activity className="w-4 h-4 text-cyan-400" />
-        Cluster performance history
-      </div>
-      <div className="flex gap-4 text-[10px] font-mono">
-         <span className="flex items-center gap-1"><div className="w-2 h-2 bg-cyan-500 rounded-full"/> CPU</span>
-         <span className="flex items-center gap-1"><div className="w-2 h-2 bg-purple-500 rounded-full"/> MEM</span>
-      </div>
-    </div>
-    
-    <div className="h-[350px]"> {/* Increased height for better visibility on wide layout */}
-      <TimelineChart data={timeline} />
-    </div>
-  </motion.div>
-
-  {/* RIGHT SIDE: Real-time Gauges (Stacked vertically) */}
-  <div className="flex flex-col gap-6">
-    <Gauge label="CPU Load" value={aggregate.cpu_percent} color="#22d3ee" />
-    <Gauge label="Memory Load" value={aggregate.memory_percent} color="#a855f7" />
-    {/* <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="flex-1 bg-gray-900/40 border border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center shadow-xl"
-    >
-      
-    </motion.div> */}
-
-    {/* <motion.div 
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.1 }}
-      className="flex-1 bg-gray-900/40 border border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center shadow-xl"
-    >
-      
-    </motion.div> */}
-  </div>
-</div>
-
-      {/* CONTAINERS */}
-      <motion.div
-        initial={mounted.current ? false : { opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="bg-gray-900/60 border border-gray-800 rounded-xl p-6"
-      >
-        <div className="flex items-center gap-2 mb-4 text-sm text-gray-300">
-          <Server className="w-4 h-4 text-cyan-400" />
-          Containers
-        </div>
-
-        <div className="space-y-2">
-          {containers.map((c) => (
-            <div
-              key={c.id}
-              className="
-                flex items-center justify-between
-                px-4 py-3
-                rounded-lg
-                border border-gray-800
-                bg-gray-900/40
-                hover:bg-gray-900/70
-                transition
-              "
-            >
-              {/* LEFT */}
-              <div className="flex items-start gap-3 min-w-0">
-                <i className="bi bi-chevron-right text-cyan-400"></i>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
-                    {c.name}
-                  </p>
-                  <p
-                    className={`text-xs ${
-                      c.status === "running"
-                        ? "text-green-400"
-                        : "text-red-400"
-                    }`}
-                  >
-                    {c.status === "running" ? "Running" : "Stopped"}
-                  </p>
-                </div>
-              </div>
-
-              {/* RIGHT */}
-              <div className="flex items-center gap-4">
-              {c.status === "running" && (
-                <div className="flex items-center gap-2">
-                  {/* CPU */}
-                  <MiniAreaChart
-                    data={containerTimeline[c.name] || []}
-                    color="#22c55e"
-                    label="CPU Usage"
-                  />
-
-                  {/* RAM */}
-                  <MiniAreaChart
-                    data={containerMemTimeline[c.name] || []}
-                    color="#3b82f6"
-                    label="RAM Usage"
-                  />
-                </div>
-              )}
-
-
-                <button
-                  onClick={() => toggleContainer(c)}
-                  className={`text-xs px-2 py-1 rounded border
-                    ${
-                      c.status === "running"
-                        ? "border-red-500/30 text-red-400 hover:bg-red-500/10"
-                        : "border-green-500/30 text-green-400 hover:bg-green-500/10"
-                    }
-                  `}
-                >
-                  {c.status === "running" ? "Stop" : "Start"}
-                </button>
-
-                <button
-                  onClick={() => viewLogs(c.name)}
-                  className="
-                    text-xs px-2 py-1 rounded
-                    border border-cyan-500/30
-                    text-cyan-400
-                    hover:bg-cyan-500/10
-                  "
-                >
-                  Logs
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* LOG VIEWER */}
-      {selectedContainer && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gray-900 border border-gray-800 rounded-xl w-11/12 max-w-5xl h-[70vh] flex flex-col"
+      {/* MAIN CONTAINER: Optimized for Topbar height and Sidebar offset */}
+      <main className="pt-24 pb-20 px-4 md:px-8 space-y-8 max-w-7xl mx-auto overflow-x-hidden">
+        
+        {/* 2. MAIN HUD GRID (Stacks on mobile, side-by-side on LG) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          {/* PERFORMANCE HISTORY: Spans 8 cols on desktop */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="lg:col-span-8 bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 backdrop-blur-md shadow-2xl"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-              <div className="flex items-center gap-2 text-sm text-gray-300">
-                <Terminal className="w-4 h-4 text-cyan-400" />
-                Logs — {selectedContainer}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+              <div className="flex items-center gap-3">
+                <BarChart2 className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-100 italic">Cluster_Dynamics</h3>
               </div>
-              <i
-                className="bi bi-x-circle text-gray-400 hover:text-white cursor-pointer"
-                onClick={() => {
-                  setSelectedContainer(null);
-                  setLogs("");
-                }}
-              ></i>
+              <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                 <span className="flex items-center gap-2"><div className="w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_8px_#06b6d4]"/> CPU</span>
+                 <span className="flex items-center gap-2"><div className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_#a855f7]"/> MEM</span>
+              </div>
             </div>
-
-            <div className="flex-1 overflow-auto p-4 bg-black">
-              <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap">
-                {logs || "No logs available"}
-              </pre>
+            
+            <div className="h-[250px] md:h-[350px] w-full">
+              <TimelineChart data={timeline} />
             </div>
           </motion.div>
+
+          {/* REAL-TIME GAUGES: Spans 4 cols on desktop, Side-by-side on tablet, Stacks on mobile */}
+          <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
+            <Gauge label="Aggregate_CPU" value={aggregate.cpu_percent} />
+            <Gauge label="Memory_Reservation" value={aggregate.memory_percent} />
+          </div>
         </div>
-      )}
+
+        {/* 3. CONTAINERS REGISTRY */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 backdrop-blur-md shadow-2xl overflow-hidden"
+        >
+          <div className="flex items-center gap-3 mb-8 px-2">
+            <Server className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-100 italic">Node_Inventory</h3>
+          </div>
+
+          <div className="space-y-4 max-h-[500px] overflow-y-auto cyber-scroll pr-2">
+            {containers.map((c) => (
+              <div
+                key={c.id}
+                className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:p-6 rounded-2xl border border-white/5 bg-[#0a0c14]/60 hover:bg-[#0a0c14]/90 hover:border-cyan-500/20 transition-all group gap-6"
+              >
+                <div className="flex items-center gap-4 min-w-0 w-full md:w-auto">
+                  <ChevronRight className="w-4 h-4 text-cyan-500 opacity-50 group-hover:translate-x-1 transition-transform" />
+                  <div className="min-w-0">
+                    <p className="text-base font-black text-white truncate italic uppercase tracking-tight">{c.name}</p>
+                    <p className={`text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2 mt-1 ${c.status === "running" ? "text-green-400" : "text-red-400"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${c.status === "running" ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-red-500 shadow-[0_0_8px_#ef4444]"}`}/>
+                      {c.status}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
+                  {c.status === "running" && (
+                    <div className="flex items-center gap-4">
+                      <div className="text-center">
+                        <p className="text-[7px] font-black text-gray-500 uppercase mb-1">CPU_Live</p>
+                        <MiniAreaChart data={containerTimeline[c.name] || []} color="#22d3ee" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[7px] font-black text-gray-500 uppercase mb-1">MEM_Live</p>
+                        <MiniAreaChart data={containerMemTimeline[c.name] || []} color="#a855f7" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => toggleContainer(c)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${c.status === "running" ? "border-red-500/20 text-red-500 hover:bg-red-500/10" : "border-green-500/20 text-green-400 hover:bg-green-500/10"}`}
+                    >
+                      {c.status === "running" ? "Kill" : "Wake"}
+                    </button>
+                    <button
+                      onClick={() => viewLogs(c.name)}
+                      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10"
+                    >
+                      Logs
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </main>
+
+      {/* 4. RESPONSIVE LOG VIEWER */}
+      <AnimatePresence>
+        {selectedContainer && (
+          <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 md:p-8 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#05070a] border border-white/10 rounded-[2.5rem] w-full max-w-6xl h-[85vh] flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/5 bg-white/[0.01]">
+                <div className="flex items-center gap-3">
+                  <Terminal className="w-5 h-5 text-cyan-400" />
+                  <h4 className="text-xs font-black uppercase tracking-[0.3em] text-white italic">Stream_Dump :: {selectedContainer}</h4>
+                </div>
+                <button onClick={() => { setSelectedContainer(null); setLogs(""); }} className="text-gray-500 hover:text-white transition-colors">
+                  <XCircle size={24} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto p-6 bg-black/40 cyber-scroll">
+                <pre className="text-[11px] text-cyan-400/80 font-mono whitespace-pre-wrap leading-relaxed">
+                  {logs || "// NO_LOG_DATA_IN_CURRENT_BUFFER"}
+                </pre>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

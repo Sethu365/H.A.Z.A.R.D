@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -10,10 +10,19 @@ import {
 } from "recharts";
 
 const TimelineChart = ({ data = [] }) => {
+  // 1. Responsive State to adjust layout for mobile
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   if (!data || data.length === 0) {
     return (
       <div className="h-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 italic border border-dashed border-white/5 rounded-2xl">
-        Buffer empty // Awaiting telemetry
+        Buffer_Empty // Awaiting_Link
       </div>
     );
   }
@@ -22,82 +31,83 @@ const TimelineChart = ({ data = [] }) => {
     <ResponsiveContainer width="100%" height="100%">
       <LineChart
         data={data}
-        margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+        // 2. Tighter margins for mobile to utilize every pixel
+        margin={{ 
+          top: 10, 
+          right: isMobile ? 5 : 15, 
+          left: isMobile ? -35 : -15, 
+          bottom: 0 
+        }}
       >
-        {/* Subtle Grid - dark to keep focus on lines */}
         <CartesianGrid
           vertical={false}
           strokeDasharray="3 3"
           stroke="rgba(255, 255, 255, 0.03)"
         />
 
-        {/* X AXIS - Time data */}
         <XAxis
           dataKey="time"
-          tick={{ fill: "#4b5563", fontSize: 9, fontWeight: 700 }}
+          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800 }}
           tickLine={false}
           axisLine={false}
-          minTickGap={30}
+          minTickGap={isMobile ? 40 : 30}
           interval="preserveStartEnd"
         />
 
-        {/* Y AXIS - 0-100% scale */}
         <YAxis
           domain={[0, 100]}
-          tick={{ fill: "#4b5563", fontSize: 9, fontWeight: 700 }}
+          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800 }}
           tickLine={false}
           axisLine={false}
-          width={40}
+          // 3. Hide YAxis values on mobile to give room to the graph lines
+          hide={isMobile}
         />
 
-        {/* Tactical Tooltip */}
         <Tooltip
           cursor={{ stroke: "rgba(6, 182, 212, 0.2)", strokeWidth: 1 }}
+          // 4. Fixed position for tooltip on mobile so it doesn't jump
+          position={isMobile ? { y: 0 } : undefined}
           contentStyle={{
-            backgroundColor: "rgba(2, 6, 23, 0.9)",
+            backgroundColor: "rgba(2, 6, 23, 0.95)",
             border: "1px solid rgba(255, 255, 255, 0.1)",
             borderRadius: "12px",
-            backdropFilter: "blur(8px)",
+            backdropFilter: "blur(12px)",
             fontSize: "10px",
             color: "#fff",
-            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
+            boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)",
+            padding: "8px 12px"
           }}
-          itemStyle={{ padding: "2px 0" }}
+          itemStyle={{ padding: "0" }}
           labelStyle={{
-            color: "#6b7280",
-            marginBottom: "4px",
-            fontWeight: "bold",
+            color: "#9ca3af",
+            marginBottom: "6px",
+            fontWeight: "900",
             textTransform: "uppercase",
-            letterSpacing: "0.1em"
+            letterSpacing: "0.15em",
+            fontSize: "8px"
           }}
         />
 
-        {/* CPU LINE - Cyan Glow */}
         <Line
           type="monotone"
           dataKey="cpu"
-          name="CPU Load"
+          name="CPU_Load"
           stroke="#06b6d4" 
-          strokeWidth={2.5}
+          strokeWidth={isMobile ? 1.5 : 2.5}
           dot={false}
-          isAnimationActive={true}
-          animationDuration={500}
-          // Adds a subtle glow effect to the line
-          style={{ filter: "drop-shadow(0px 0px 6px rgba(6, 182, 212, 0.4))" }}
+          isAnimationActive={false} // Disabled for smoother real-time feel
+          style={{ filter: "drop-shadow(0px 0px 8px rgba(6, 182, 212, 0.6))" }}
         />
 
-        {/* MEMORY LINE - Purple Glow */}
         <Line
           type="monotone"
           dataKey="memory"
-          name="MEM Usage"
+          name="MEM_Usage"
           stroke="#a855f7" 
-          strokeWidth={2.5}
+          strokeWidth={isMobile ? 1.5 : 2.5}
           dot={false}
-          isAnimationActive={true}
-          animationDuration={500}
-          // Adds a subtle glow effect to the line
-          style={{ filter: "drop-shadow(0px 0px 6px rgba(168, 85, 247, 0.4))" }}
+          isAnimationActive={false}
+          style={{ filter: "drop-shadow(0px 0px 8px rgba(168, 85, 247, 0.6))" }}
         />
       </LineChart>
     </ResponsiveContainer>

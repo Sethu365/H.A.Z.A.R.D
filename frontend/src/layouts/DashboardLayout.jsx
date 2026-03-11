@@ -12,7 +12,7 @@ export default function DashboardLayout() {
       {/* MAIN COLUMN */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* TOPBAR */}
-        <Topbar />
+        {/* <Topbar /> */}
 
         {/* CONTENT AREA */}
         <main

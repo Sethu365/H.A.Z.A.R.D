@@ -1,8 +1,7 @@
 import { motion } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 const clamp = (v, min = 0, max = 100) => {
-  // If value is not a number (like "--"), return 0 for the progress bar
   if (typeof v !== 'number' || isNaN(v)) return 0;
   return Math.min(max, Math.max(min, v));
 };
@@ -11,43 +10,52 @@ const Gauge = ({
   label,
   value = 0,
   unit = "%",
-  size = 140, // Slightly reduced to fit better in grids
-  thickness = 10
+  thickness = 8
 }) => {
+  // 1. Responsive Size Logic
+  const [size, setSize] = useState(window.innerWidth < 640 ? 110 : 140);
+
+  useEffect(() => {
+    const handleResize = () => setSize(window.innerWidth < 640 ? 110 : 140);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const isOffline = typeof value !== 'number' || isNaN(value);
   const safeValue = clamp(value);
 
   const radius = (size - thickness) / 2;
   const circumference = 2 * Math.PI * radius;
-  // If offline, offset is full circumference (0 progress)
   const offset = circumference * (1 - safeValue / 100);
 
   const color = useMemo(() => {
-    if (isOffline) return "#4b5563"; // gray-600 for offline
-    if (safeValue >= 85) return "#ef4444"; // critical
-    if (safeValue >= 70) return "#f97316"; // high
-    if (safeValue >= 50) return "#eab308"; // medium
-    return "#22c55e"; // healthy
+    if (isOffline) return "#4b5563"; 
+    if (safeValue >= 85) return "#ef4444"; 
+    if (safeValue >= 70) return "#f97316"; 
+    if (safeValue >= 50) return "#eab308"; 
+    return "#22c55e"; 
   }, [safeValue, isOffline]);
 
   return (
     <div
       className={`
-        bg-gray-900/40
-        border border-gray-800/50
-        rounded-2xl
-        p-4
-        flex flex-col items-center
-        transition-opacity duration-500
-        ${isOffline ? 'opacity-50' : 'opacity-100'}
+        bg-white/[0.02]
+        backdrop-blur-md
+        border border-white/5
+        rounded-[2rem]
+        p-4 md:p-6
+        flex flex-col items-center justify-center
+        transition-all duration-500
+        w-full
+        ${isOffline ? 'opacity-40' : 'opacity-100 shadow-xl'}
       `}
     >
-      {/* LABEL */}
-      <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4">
+      {/* LABEL - Scales for mobile */}
+      <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-4 md:mb-6 text-center italic">
         {label}
       </span>
 
-      {/* GAUGE */}
+      {/* GAUGE CONTAINER */}
       <div
         className="relative flex items-center justify-center"
         style={{ width: size, height: size }}
@@ -55,19 +63,19 @@ const Gauge = ({
         <svg
           width={size}
           height={size}
-          className="-rotate-90"
+          className="-rotate-90 filter drop-shadow-[0_0_10px_rgba(0,0,0,0.5)]"
         >
-          {/* Track */}
+          {/* Background Track */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#1f2937" // gray-800
+            stroke="rgba(255,255,255,0.03)"
             strokeWidth={thickness}
             fill="none"
           />
 
-          {/* Progress */}
+          {/* Neural Progress Path */}
           <motion.circle
             cx={size / 2}
             cy={size / 2}
@@ -80,28 +88,41 @@ const Gauge = ({
             animate={{ strokeDashoffset: offset }}
             initial={{ strokeDashoffset: circumference }}
             transition={{
-              duration: 1,
-              ease: "circOut"
+              duration: 1.5,
+              ease: [0.16, 1, 0.3, 1] // Tactical expo-out ease
             }}
             style={{
-              filter: isOffline ? 'none' : `drop-shadow(0 0 8px ${color}44)`
+              filter: isOffline ? 'none' : `drop-shadow(0 0 12px ${color}66)`
             }}
           />
         </svg>
 
-        {/* CENTER VALUE */}
+        {/* CENTER TELEMETRY READOUT */}
         <div className="absolute flex flex-col items-center">
-          <span
-            className={`font-bold tabular-nums tracking-tighter transition-colors duration-500 ${isOffline ? 'text-3xl' : 'text-2xl'}`}
-            style={{ color: isOffline ? "#6b7280" : color }}
+          <motion.span
+            key={safeValue} // Triggers animation on value change
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`font-black tabular-nums tracking-tighter transition-colors duration-500 font-sans italic
+              ${isOffline ? 'text-2xl' : 'text-3xl md:text-4xl'}
+            `}
+            style={{ color: isOffline ? "#6b7280" : "white" }}
           >
             {isOffline ? "--" : `${safeValue.toFixed(0)}${unit}`}
-          </span>
-          <span className="text-[9px] font-medium text-gray-600 uppercase tracking-tighter mt-0.5">
-            {isOffline ? "offline" : "utilization"}
+          </motion.span>
+          
+          <span className={`text-[7px] md:text-[8px] font-black uppercase tracking-widest mt-1
+            ${isOffline ? 'text-gray-600' : 'text-cyan-500/60'}
+          `}>
+            {isOffline ? "link_lost" : "utilization"}
           </span>
         </div>
       </div>
+      
+      {/* BOTTOM ACCENT (Visible on Desktop) */}
+      {!isOffline && (
+        <div className="hidden md:block mt-6 w-12 h-[2px] bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-full" />
+      )}
     </div>
   );
 };

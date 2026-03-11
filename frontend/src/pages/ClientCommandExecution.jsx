@@ -1,34 +1,30 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Terminal, Send, Activity, Clock, Cpu, XOctagon, 
-  FileText, Globe, Server, Hash, GitBranch, Search, Info 
+  FileText, Globe, Server, Hash, GitBranch, Search, Info, ChevronRight, Zap
 } from "lucide-react";
+import Topbar from "../components/Topbar";
 
 const API_BASE = "http://172.24.16.81:8001/client";
 
-const ClientCommandExecution = () => {
+const ClientCommandExecution = ({ setLoading, setError }) => {
   const { hostname } = useParams();
   const terminalEndRef = useRef(null);
-  const isFirstRender = useRef(true); // Ref to prevent initial scroll jump
+  const isFirstRender = useRef(true);
   
   const [commands, setCommands] = useState([]);
   const [isOnline, setIsOnline] = useState(false);
   const [activeOutput, setActiveOutput] = useState({ 
     id: null, 
     action: null, 
-    content: "AURORA v4.0 - Secure Terminal\nInitialising protocol suite...\nType or select a command to begin execution." 
+    content: "AURORA_OS v4.0 - Secure Command Interface\nEstablishing encrypted gRPC tunnel...\nReady for instruction." 
   });
 
-  // Auto-scroll logic with "jump" prevention
+  // Auto-scroll logic
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return; // Skip scrolling on initial component mount
-    }
-
-    // Only auto-scroll if we are actively executing a command
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (activeOutput.id || activeOutput.action) {
       terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -75,17 +71,12 @@ const ClientCommandExecution = () => {
 
   const handleCommand = async (action) => {
     let args = {};
-    
     if (action === 'kill_process') {
       const pid = prompt("Enter PID to terminate:");
       if (!pid) return;
       args = { pid: parseInt(pid) };
     } else if (action === 'read_file') {
       const path = prompt("Enter full file path:", "/etc/hostname");
-      if (!path) return;
-      args = { path };
-    } else if (action === 'list_files') {
-      const path = prompt("Enter directory path:", "/");
       if (!path) return;
       args = { path };
     }
@@ -108,98 +99,95 @@ const ClientCommandExecution = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen p-6 gap-6 bg-[#020617]">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-            <Terminal className="text-cyan-500" />
-            <h2 className="text-3xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">Command Console: {hostname}</h2>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1 bg-gray-900 border border-gray-800 rounded-lg">
-            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`} />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{isOnline ? 'Session Active' : 'Session Terminated'}</span>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#020617] text-white">
+      <Topbar name={`Console: ${hostname}`} desc="Direct_System_Control_Interface" />
 
-      <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
-        {/* Terminal Area */}
-        <div className="col-span-12 lg:col-span-8 bg-black rounded-3xl border border-gray-800 flex flex-col overflow-hidden shadow-2xl">
-            <div className="px-5 py-3 border-b border-gray-800 bg-gray-900/50 flex justify-between items-center">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">A.U.R.O.R.A Secure Stream</span>
-                <div className="flex gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/40" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/40" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/40" />
-                </div>
-            </div>
-            <div className="flex-1 p-6 font-mono text-sm overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800">
-                <div className="text-cyan-500 mb-2 font-bold italic">aura@{hostname}:~# <span className="text-white not-italic">{activeOutput.action || 'system-check'}</span></div>
-                <pre className="text-gray-300 whitespace-pre-wrap leading-relaxed font-mono">{activeOutput.content}</pre>
-                <motion.div animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.8 }} className="inline-block w-2 h-4 bg-cyan-500 ml-1 mt-2" />
-                <div ref={terminalEndRef} />
-            </div>
+      {/* Main Responsive Grid */}
+      <main className="pt-24 pb-20 px-4 md:px-8 max-w-7xl mx-auto flex flex-col gap-6 h-[calc(100vh-20px)] lg:h-screen">
+        
+        {/* Status Indicator */}
+        <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 p-4 rounded-2xl backdrop-blur-md">
+          <div className="flex items-center gap-3">
+             <div className={`w-3 h-3 rounded-full animate-pulse ${isOnline ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`} />
+             <span className="text-[10px] font-black uppercase tracking-[0.4em] italic text-gray-300">
+               {isOnline ? 'Uplink_Established' : 'Uplink_Terminated'}
+             </span>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/5 rounded-lg border border-white/10">
+             <Terminal size={12} className="text-cyan-400" />
+             <span className="text-[9px] font-mono text-gray-500 uppercase tracking-tighter">gRPC_Channel_v4</span>
+          </div>
         </div>
 
-        {/* Action Sidebar */}
-        <div className="col-span-12 lg:col-span-4 flex flex-col gap-4 overflow-hidden">
-            <div className="bg-gray-900/40 border border-gray-800 rounded-3xl p-5 flex flex-col min-h-0 shadow-xl">
-                <p className="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-[0.2em]">Execution Suite</p>
-                
-                <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-800">
-                    <SmallActionButton label="Ping" icon={<Activity size={14}/>} onClick={() => handleCommand('ping')} active={isOnline} />
-                    <SmallActionButton label="Uptime" icon={<Clock size={14}/>} onClick={() => handleCommand('uptime')} active={isOnline} />
-                    <SmallActionButton label="Processes" icon={<Hash size={14}/>} onClick={() => handleCommand('list_processes')} active={isOnline} />
-                    <SmallActionButton label="Top Procs" icon={<Cpu size={14}/>} onClick={() => handleCommand('top_processes')} active={isOnline} />
-                    <SmallActionButton label="Kill PID" icon={<XOctagon size={14}/>} onClick={() => handleCommand('kill_process')} active={isOnline} color="text-red-400" />
-                    {/* <SmallActionButton label="Read File" icon={<FileText size={14}/>} onClick={() => handleCommand('read_file')} active={isOnline} />
-                    <SmallActionButton label="List Files" icon={<Search size={14}/>} onClick={() => handleCommand('list_files')} active={isOnline} /> */}
-                    <SmallActionButton label="Ports" icon={<Globe size={14}/>} onClick={() => handleCommand('open_ports')} active={isOnline} />
-                    {/* <SmallActionButton label="Agent Info" icon={<Info size={14}/>} onClick={() => handleCommand('agent_info')} active={isOnline} />
-                    <SmallActionButton label="Tree" icon={<GitBranch size={14}/>} onClick={() => handleCommand('process_tree')} active={isOnline} />*/}
-                </div>
-            </div>
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+          {/* 1. Terminal Area */}
+          <div className="lg:col-span-8 bg-black rounded-[2.5rem] border border-white/10 flex flex-col overflow-hidden shadow-2xl relative">
+              {/* Terminal Header */}
+              <div className="px-6 py-4 border-b border-white/5 bg-[#0a0c14] flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <Zap size={14} className="text-cyan-400 animate-pulse" />
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Secure_Stream</span>
+                  </div>
+                  <div className="flex gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/40" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-cyan-500/20 border border-cyan-500/40" />
+                  </div>
+              </div>
 
-            {/* History Section - Re-enabled and styled for high-density info */}
-            {/* <div className="bg-gray-900/40 border border-gray-800 rounded-3xl p-5 flex-1 flex flex-col min-h-0">
-                <p className="text-[10px] font-black text-gray-500 uppercase mb-4 tracking-[0.2em]">Sequence History</p>
-                <div className="space-y-2 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-800">
-                    {commands.length === 0 && <p className="text-[10px] text-gray-600 italic">No historical data...</p>}
-                    {commands.slice(0, 15).map(cmd => (
-                        <button 
-                            key={cmd.id} 
-                            onClick={() => {
-                                setActiveOutput({ id: cmd.id, action: cmd.action, content: "Reloading buffer..." });
-                                pollCommandResult(cmd.id, cmd.action);
-                            }} 
-                            className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between group
-                                ${activeOutput.id === cmd.id ? 'bg-cyan-500/10 border-cyan-500/40' : 'bg-black/40 border-gray-800 hover:border-gray-600'}`}
-                        >
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-bold text-gray-300 uppercase group-hover:text-cyan-400">{cmd.action}</span>
-                                <span className="text-[8px] text-gray-600 font-mono">{cmd.id.split('-')[0]}</span>
-                            </div>
-                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border 
-                                ${cmd.status === 'completed' ? 'text-green-500 border-green-500/30' : 'text-yellow-500 border-yellow-500/30'}`}>
-                                {cmd.status}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-            </div> */}
+              {/* Console Output */}
+              <div className="flex-1 p-6 font-mono text-xs md:text-sm overflow-y-auto cyber-scroll bg-[#02040a]">
+                  <div className="text-cyan-500 mb-4 font-bold italic flex items-center gap-2">
+                    <ChevronRight size={14} />
+                    aura@{hostname}:~# <span className="text-white not-italic">{activeOutput.action || 'sys_check'}</span>
+                  </div>
+                  <pre className="text-gray-300 whitespace-pre-wrap leading-relaxed font-mono drop-shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                    {activeOutput.content}
+                  </pre>
+                  <motion.div 
+                    animate={{ opacity: [1, 0] }} 
+                    transition={{ repeat: Infinity, duration: 0.8 }} 
+                    className="inline-block w-2 h-4 bg-cyan-500 ml-1 mt-4" 
+                  />
+                  <div ref={terminalEndRef} />
+              </div>
+          </div>
+
+          {/* 2. Action Sidebar (Scrollable on Desktop, Stacked on Mobile) */}
+          <div className="lg:col-span-4 flex flex-col gap-6 overflow-hidden">
+              <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 flex flex-col min-h-0 backdrop-blur-md shadow-xl">
+                  <h3 className="text-[10px] font-black text-gray-500 uppercase mb-6 tracking-[0.3em] italic border-b border-white/5 pb-3">Execution_Suite</h3>
+                  
+                  <div className="grid grid-cols-2 gap-3 overflow-y-auto pr-1 cyber-scroll">
+                      <TacticalButton label="Ping" icon={<Activity size={16}/>} onClick={() => handleCommand('ping')} active={isOnline} />
+                      <TacticalButton label="Uptime" icon={<Clock size={16}/>} onClick={() => handleCommand('uptime')} active={isOnline} />
+                      <TacticalButton label="Processes" icon={<Hash size={16}/>} onClick={() => handleCommand('list_processes')} active={isOnline} />
+                      <TacticalButton label="Top_Load" icon={<Cpu size={16}/>} onClick={() => handleCommand('top_processes')} active={isOnline} />
+                      <TacticalButton label="Kill_PID" icon={<XOctagon size={16}/>} onClick={() => handleCommand('kill_process')} active={isOnline} color="text-red-500" border="border-red-500/20" />
+                      <TacticalButton label="Open_Ports" icon={<Globe size={16}/>} onClick={() => handleCommand('open_ports')} active={isOnline} />
+                  </div>
+              </div>
+
+              {/* Optional: Status Readout Panel */}
+              <div className="hidden lg:flex bg-cyan-500/5 border border-cyan-500/10 rounded-[2rem] p-6 flex-col justify-center gap-2">
+                 <p className="text-[8px] font-black text-cyan-500/60 uppercase tracking-widest">Protocol_Handshake</p>
+                 <p className="text-[10px] font-mono text-cyan-400 italic">Link encrypted with AES-256-GCM. gRPC agent responding on port 50051.</p>
+              </div>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
 
-const SmallActionButton = ({ label, onClick, active, icon, color = "text-gray-300" }) => (
+// Tactical Button Component
+const TacticalButton = ({ label, onClick, active, icon, color = "text-gray-200", border = "border-white/10" }) => (
     <button 
         disabled={!active} 
         onClick={onClick} 
-        className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gray-800/30 border border-gray-800 hover:border-cyan-500/50 hover:bg-cyan-500/5 disabled:opacity-20 transition-all group"
+        className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl bg-white/[0.03] border ${border} hover:border-cyan-500/50 hover:bg-cyan-500/10 disabled:opacity-10 transition-all group shadow-inner`}
     >
-        <span className="text-cyan-500 group-hover:scale-110 transition-transform">{icon}</span>
-        <span className={`text-[10px] font-bold uppercase tracking-tighter ${color} group-hover:text-white`}>{label}</span>
+        <span className="text-cyan-400 group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_#06b6d4] transition-all">{icon}</span>
+        <span className={`text-[9px] font-black uppercase tracking-widest ${color} group-hover:text-white transition-colors`}>{label}</span>
     </button>
 );
 

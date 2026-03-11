@@ -5,14 +5,13 @@ import {
   Activity,
   Server,
   Database,
-  Clock, 
-  Radar,
-  Orbit
+  Clock,
+  Settings,
 } from "lucide-react";
-import TimelineChart from "../components/TimelineChart";
-import Gauge from "../components/Gauge";
-import { useNavigate } from "react-router-dom";
 import TimelineAreaChart from "../components/TimelineAreaChart";
+import Gauge from "../components/Gauge";
+import Topbar from "../components/Topbar";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE = "http://172.24.16.81:8001";
 const POLL_INTERVAL_MS = 1000;
@@ -22,63 +21,31 @@ const safeGet = (url, fallback) =>
 
 const Dashboard = () => {
   const navigate = useNavigate();
-
   const [cpuHistory, setCpuHistory] = useState([]);
   const [memHistory, setMemHistory] = useState([]);
   const [kafkaTopics, setKafkaTopics] = useState({});
   const [kafkaRates, setKafkaRates] = useState({});
-  const [mongoStats, setMongoStats] = useState({ count: 0, size_mb: 0 });
-  const [timescaleStats, setTimescaleStats] = useState({
-    total_table_size: "0 MB",
-    total_rows_logs: 0
-  });
-  const [dockerHealth, setDockerHealth] = useState({
-    docker_daemon: "unknown",
-    containers_running: 0
-  });
+  const [timescaleStats, setTimescaleStats] = useState({ total_table_size: "0 MB", total_rows_logs: 0 });
+  const [dockerHealth, setDockerHealth] = useState({ docker_daemon: "unknown", containers_running: 0 });
   const [uptime, setUptime] = useState("0m");
   const [loading, setLoading] = useState(true);
 
-  /* ---------------- LOAD DATA ---------------- */
   useEffect(() => {
     const loadData = async () => {
-      const [
-        cpuData,
-        memData,
-        topicsData,
-        ratesData,
-        mongoData,
-        timescaleData,
-        dockerData,
-        uptimeData
-      ] = await Promise.all([
+      const [cpuData, memData, topicsData, ratesData, timescaleData, dockerData, uptimeData] = await Promise.all([
         safeGet(`${API_BASE}/system/cpu/timeseries`, []),
         safeGet(`${API_BASE}/system/memory/timeseries`, []),
         safeGet(`${API_BASE}/kafka/topics`, {}),
         safeGet(`${API_BASE}/kafka/topic-rates`, {}),
-        safeGet(
-          `${API_BASE}/mongo/collection-stats?db=security_events_test&coll=events`,
-          { count: 0, size_mb: 0 }
-        ),
-        safeGet(`${API_BASE}/timescale/health`, {
-          total_table_size: "0 MB",
-          total_rows_logs: 0
-        }),
-        safeGet(`${API_BASE}/docker/health`, {
-          docker_daemon: "down",
-          containers_running: 0
-        }),
-        safeGet(`${API_BASE}/system/uptime`, {
-          uptime_seconds: 0,
-          formatted: "0m"
-        })
+        safeGet(`${API_BASE}/timescale/health`, { total_table_size: "0 MB", total_rows_logs: 0 }),
+        safeGet(`${API_BASE}/docker/health`, { docker_daemon: "down", containers_running: 0 }),
+        safeGet(`${API_BASE}/system/uptime`, { formatted: "0m" })
       ]);
 
       setCpuHistory(cpuData);
       setMemHistory(memData);
       setKafkaTopics(topicsData);
       setKafkaRates(ratesData);
-      setMongoStats(mongoData);
       setTimescaleStats(timescaleData);
       setDockerHealth(dockerData);
       setUptime(uptimeData.formatted ?? "0m");
@@ -92,195 +59,144 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
-        Loading SOC dashboard…
+      <div className="flex flex-col items-center justify-center min-h-screen text-cyan-400 bg-[#020617] animate-pulse">
+        <Activity className="w-12 h-12 mb-4" />
+        <span className="text-[10px] font-black uppercase tracking-[0.4em]">Establishing_Link</span>
       </div>
     );
   }
 
-  /* ---------------- DERIVED DATA ---------------- */
   const latestCpu = cpuHistory.at(-1)?.cpu ?? 0;
   const latestMem = memHistory.at(-1)?.memory ?? 0;
 
   const timelineData = cpuHistory.map((c, i) => ({
-    time: new Date(c.ts * 1000).toLocaleTimeString(),
+    time: new Date(c.ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     cpu: Number(c.cpu.toFixed(2)),
     memory: Number((memHistory[i]?.memory ?? 0).toFixed(2))
   }));
 
-  const kafkaTableData = Object.entries(kafkaTopics).map(
-    ([topic, meta]) => ({
-      topic,
-      partitions: meta.partitions,
-      rate: kafkaRates[topic]?.messages_per_sec ?? 0
-    })
-  );
-
-  // const formatUptime = seconds => {
-  //   const d = Math.floor(seconds / 86400);
-  //   const h = Math.floor((seconds % 86400) / 3600);
-  //   const m = Math.floor((seconds % 3600) / 60);
-  //   if (d) return `${d}d ${h}h`;
-  //   if (h) return `${h}h ${m}m`;
-  //   if (m) return `${m}m`;
-  //   return `${seconds}s`;
-  // };
+  const kafkaTableData = Object.entries(kafkaTopics).map(([topic, meta]) => ({
+    topic,
+    partitions: meta.partitions,
+    rate: kafkaRates[topic]?.messages_per_sec ?? 0
+  }));
 
   /* ---------------- UI COMPONENTS ---------------- */
   const StatCard = ({ icon: Icon, title, value, color }) => (
-    <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs text-gray-400 mb-1">{title}</p>
-          <p className={`text-xl font-semibold ${color}`}>{value}</p>
-        </div>
-        <Icon className={`w-6 h-6 ${color}`} />
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-xl">
+      <div className="min-w-0">
+        <p className="text-[9px] font-black uppercase text-gray-500 tracking-wider mb-1 truncate">{title}</p>
+        <p className={`text-xl font-bold truncate ${color}`}>{value}</p>
       </div>
+      <Icon className={`w-6 h-6 shrink-0 ml-3 ${color} opacity-80`} />
     </div>
   );
 
   const Section = ({ title, action, children }) => (
-    <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 space-y-4">
+    <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-4 md:p-6 space-y-4 backdrop-blur-sm shadow-2xl">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <h3 className="text-xs md:text-sm font-black uppercase text-gray-300 tracking-[0.2em] italic">{title}</h3>
         {action}
       </div>
       {children}
     </div>
   );
 
-  /* ---------------- RENDER ---------------- */
   return (
-    <div className="space-y-8">
-      {/* HEADER */}
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-        <div className="flex items-center gap-2 mb-3">
-           <Orbit size={14} className="text-cyan-500 animate-pulse" />
-           <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">A.U.R.O.R.A</span>
-        </div>
-        <h1 className="text-5xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40">INFRASTRUCTURE_OVERVIEW</h1>
-      </motion.div>
+    <div className="min-h-screen bg-[#020617]">
+      {/* Fixed Topbar */}
+      <Topbar name="Telemetry" desc="Infrastructure_Operational_Link" />
 
-      {/* SYSTEM TIMELINE */}
-      <Section
-        title="System Metrics"
-        action={
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Clock className="w-4 h-4" />
-            Uptime:{" "}
-            <span className="text-white font-medium">
-              {uptime}
-            </span>
-          </div>
-        }
-      >
-        <TimelineAreaChart data={timelineData} />
-      </Section>
-
-      {/* CPU / MEMORY */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Gauge label="CPU Utilization" value={latestCpu} />
-        <Gauge label="Memory Utilization" value={latestMem} />
-      </div>
-
-      {/* DATABASES */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* <Section
-          title="MongoDB"
-          action={
-            <i className="bi bi-gear"  onClick={() => navigate("/mongo-logs")}></i>
-          }
-        >
-          <div className="grid grid-cols-2 gap-4">
-            <StatCard
-              icon={Database}
-              title="Documents"
-              value={mongoStats.count}
-              color="text-cyan-400"
-            />
-            <StatCard
-              icon={Database}
-              title="Collection Size"
-              value={`${mongoStats.size_mb} MB`}
-              color="text-indigo-400"
-            />
-          </div>
-        </Section> */}
-
+      {/* LAYOUT CONTAINER:
+          mt-24 accounts for the Topbar height.
+          The Responsive padding handles mobile (px-4) vs Desktop (px-8).
+      */}
+      <main className="pt-24 pb-20 px-4 md:px-8 space-y-6 max-w-7xl mx-auto overflow-x-hidden">
+        
+        {/* SYSTEM TIMELINE - Full width on all screens */}
         <Section
-          title="TimescaleDB"
+          title="System Realtime Metrics"
           action={
-            <i className="bi bi-gear"  onClick={() => navigate("/timescale-logs")}></i>
+            <div className="flex items-center gap-2 text-[10px] font-mono text-gray-500 uppercase">
+              <Clock className="w-3 h-3 text-cyan-400" />
+              Uptime: <span className="text-white">{uptime}</span>
+            </div>
           }
         >
-          <div className="grid grid-cols-2 gap-4">
-            <StatCard
-              icon={Database}
-              title="Total Rows"
-              value={timescaleStats.total_rows_logs}
-              color="text-emerald-400"
-            />
-            <StatCard
-              icon={Database}
-              title="Total Size"
-              value={timescaleStats.total_table_size}
-              color="text-emerald-300"
-            />
+          {/* TimelineAreaChart will need to be internally responsive (use ResponsiveContainer) */}
+          <div className="h-[200px] md:h-[300px] w-full">
+            <TimelineAreaChart data={timelineData} />
           </div>
-        </Section> 
-      
+        </Section>
 
-      {/* DOCKER */}
-      <Section
-        title="Docker Runtime"
-        action={
-          <i className="bi bi-gear"  onClick={() => navigate("/docker-settings")}></i>
-        }
-      >
-        <div className="grid grid-cols-2 gap-4">
-          <StatCard
-            icon={Server}
-            title="Daemon"
-            value={dockerHealth.docker_daemon}
-            color={
-              dockerHealth.docker_daemon === "running"
-                ? "text-green-400"
-                : "text-red-400"
-            }
-          />
-          <StatCard
-            icon={Activity}
-            title="Running Containers"
-            value={dockerHealth.containers_running}
-            color="text-cyan-400"
-          />
+        {/* CPU / MEMORY GAUGES - Stacked on mobile, 2 columns on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8">
+          <Gauge label="CPU Utilization" value={latestCpu} />
+          <Gauge label="Memory Utilization" value={latestMem} />
         </div>
-      </Section>
-      </div>
 
-      {/* KAFKA */}
-      <Section title="Kafka Topics">
-        <table className="w-full text-sm text-gray-300">
-          <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left py-2">Topic</th>
-              <th className="text-right py-2">Partitions</th>
-              <th className="text-right py-2">Ingest Rate (msg/s)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {kafkaTableData.map(row => (
-              <tr key={row.topic} className="border-b border-gray-800/50">
-                <td className="py-2">{row.topic}</td>
-                <td className="py-2 text-right">{row.partitions}</td>
-                <td className="py-2 text-right">
-                  {row.rate.toFixed(2)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Section>
+        {/* DATABASES & DOCKER - 1 col on mobile, 2 cols on desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Section
+            title="Database Layer"
+            action={
+              <button onClick={() => navigate("/timescale-logs")} className="hover:text-cyan-400 text-gray-600 transition-colors">
+                <Settings size={14} />
+              </button>
+            }
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <StatCard icon={Database} title="TDB Total Rows" value={timescaleStats.total_rows_logs} color="text-emerald-400" />
+              <StatCard icon={Database} title="TDB Total Size" value={timescaleStats.total_table_size} color="text-emerald-300" />
+            </div>
+          </Section>
+
+          <Section
+            title="Docker Runtime"
+            action={
+              <button onClick={() => navigate("/docker-settings")} className="hover:text-cyan-400 text-gray-600 transition-colors">
+                <Settings size={14} />
+              </button>
+            }
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <StatCard
+                icon={Server}
+                title="Daemon Status"
+                value={dockerHealth.docker_daemon}
+                color={dockerHealth.docker_daemon === "running" ? "text-green-400" : "text-red-400"}
+              />
+              <StatCard icon={Activity} title="Running Nodes" value={dockerHealth.containers_running} color="text-cyan-400" />
+            </div>
+          </Section>
+        </div>
+
+        {/* KAFKA TOPICS - Responsive Table */}
+        <Section title="Kafka Message Mesh">
+          <div className="overflow-x-auto cyber-scroll">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-white/10 text-[9px] font-black uppercase text-gray-500 tracking-[0.2em]">
+                  <th className="py-3 px-2">Stream_Topic</th>
+                  <th className="py-3 px-2 text-right">Partitions</th>
+                  <th className="py-3 px-2 text-right">Ingest_Rate (ms/s)</th>
+                </tr>
+              </thead>
+              <tbody className="text-[11px] font-mono divide-y divide-white/5">
+                {kafkaTableData.map(row => (
+                  <tr key={row.topic} className="group hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3 px-2 text-cyan-400 font-bold truncate max-w-[120px] md:max-w-none">{row.topic}</td>
+                    <td className="py-3 px-2 text-right text-gray-400">{row.partitions}</td>
+                    <td className="py-3 px-2 text-right text-white">
+                      {row.rate.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      </main>
     </div>
   );
 };

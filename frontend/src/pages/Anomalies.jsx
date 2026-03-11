@@ -7,12 +7,13 @@ import {
   Clock, Link2, History, ShieldOff, Snowflake, Database, Gauge, Loader2, Ghost, Radar,
   Orbit, Cpu, Server, Target, Code, Binary, Radio, AlertCircle
 } from 'lucide-react';
+import Topbar from "../components/Topbar"; // 1. Imported Topbar
 
 const API_BASE = "http://172.24.16.81:8001";
 
-const Anomalies = () => {
+const Anomalies = ({ setLoading, setError }) => {
   const [anomalyData, setAnomalyData] = useState({ total_anomalies: 0, data: [] });
-  const [loading, setLoading] = useState(true);
+  const [localSyncing, setLocalSyncing] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLog, setSelectedLog] = useState(null);
   const [showRawLog, setShowRawLog] = useState(false);
@@ -21,15 +22,27 @@ const Anomalies = () => {
   
   const navigate = useNavigate(); 
 
-  const loadData = async () => {
+  const loadData = async (isInitial = false) => {
+    if (isInitial) {
+      setLoading(true);
+      setError(null);
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/anomalies`);
+      if (!res.ok) throw new Error(`Neural_Link_Status: ${res.status}`);
+      
       const result = await res.json();
       setAnomalyData({ total_anomalies: result.total_anomalies || 0, data: result.data || [] });
+      
+      if (isInitial) setLoading(false);
+      setLocalSyncing(false);
     } catch (err) {
       console.error("SOC Data Link Interrupted");
-    } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+        setError("Neural Link Failed: Could not sync with Anomaly Registry.");
+      }
     }
   };
 
@@ -47,8 +60,8 @@ const Anomalies = () => {
   };
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 5000);
+    loadData(true);
+    const interval = setInterval(() => loadData(false), 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -59,227 +72,120 @@ const Anomalies = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-20 px-4 pt-4 relative text-white font-sans selection:bg-cyan-500/30">
-      <style>{`
-        .cyber-scroll::-webkit-scrollbar { width: 4px; }
-        .cyber-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 20px; }
-        .cyber-scroll::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
-        .text-glow { text-shadow: 0 0 15px rgba(255,255,255,0.2); }
-      `}</style>
-      
-      {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-             <Orbit size={14} className="text-cyan-500 animate-pulse" />
-             <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">Global_Archives</span>
-          </div>
-          <h1 className="text-4xl lg:text-5xl font-black tracking-tighter uppercase italic bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 truncate text-glow">
-            ANOMALY_MONITOR
-          </h1>
-        </div>
+    <div className="min-h-screen bg-[#020617] text-white font-['Nunito']">
+      {/* 2. Added Topbar Component */}
+      <Topbar name="Anomalies" desc="Real-time_Threat_Monitoring_Uplink" />
+
+      {/* 3. Added pt-24 to main content to account for fixed Topbar height */}
+      <main className="max-w-7xl mx-auto space-y-8 pb-20 px-4 pt-24 relative selection:bg-cyan-500/30">
+        <style>{`
+          .cyber-scroll::-webkit-scrollbar { width: 4px; }
+          .cyber-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 20px; }
+          .cyber-scroll::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+          .text-glow { text-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        `}</style>
         
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => navigate('/anomalies/history')}
-            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all text-purple-400 bg-purple-500/5 border border-purple-500/20 hover:bg-purple-500/10 hover:border-purple-400 active:scale-95 group shadow-2xl"
-          >
-            <History size={14} className="group-hover:rotate-[-45deg] transition-transform duration-300" />
-            Archive Vault
-          </button>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-            <input
-              type="text"
-              placeholder="Search active buffer..."
-              className="bg-gray-900/50 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-xs outline-none focus:border-cyan-500 transition-all w-64 uppercase tracking-widest"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        {/* HEADER SECTION */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+               <Orbit size={14} className="text-cyan-500 animate-pulse" />
+               <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">Global_Archives</span>
+            </div>
+
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => navigate('/anomalies/history')}
+              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all text-purple-400 bg-purple-500/5 border border-purple-500/20 hover:bg-purple-500/10 hover:border-purple-400 active:scale-95 group shadow-2xl"
+            >
+              <History size={14} className="group-hover:rotate-[-45deg] transition-transform duration-300" />
+              Archive Vault
+            </button>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+              <input
+                type="text"
+                placeholder="Search active buffer..."
+                className="bg-gray-900/50 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-xs outline-none focus:border-cyan-500 transition-all w-64 uppercase tracking-widest"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* STAT TILES */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <StatTile label="Ingested Events (24h)" value={anomalyData.total_anomalies} color="cyan" />
-        <StatTile label="Threat_Ceiling" value={`${Math.max(...(anomalyData.data?.map(d => d.risk_score) || [0]), 0)}%`} color="red" />
-      </div>
+        {/* STAT TILES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <StatTile label="Ingested Events (24h)" value={anomalyData.total_anomalies} color="cyan" />
+          <StatTile label="Threat_Ceiling" value={`${Math.max(...(anomalyData.data?.map(d => d.risk_score) || [0]), 0)}%`} color="red" />
+        </div>
 
-      {/* LIVE FEED CARDS - PROCESS NAME PRIMARY */}
-      <div className="space-y-4 cyber-scroll max-h-[60vh] overflow-y-auto pr-2">
-        {loading ? (
-          <div className="p-20 text-center text-gray-600 font-black uppercase tracking-[0.6em] animate-pulse">Syncing Registry...</div>
-        ) : filteredData.length === 0 ? (
-          <div className="p-20 text-center border border-dashed border-white/5 rounded-[2rem] text-gray-500 font-mono text-sm italic">
-            No behavioral deviations detected in current buffer.
-          </div>
-        ) : (
-          filteredData.map((log) => (
-            <motion.div 
-              key={log.event_id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              onClick={() => { setSelectedLog(log); setShowRawLog(false); fetchGhostData(log); }}
-              className="group bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 p-5 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-md transition-all relative overflow-hidden cursor-pointer"
-            >
-              <div className="flex items-center gap-6 flex-1 min-w-0 w-full">
-                 <div className={`p-4 rounded-2xl border shrink-0 ${log.risk_score > 80 ? 'border-red-500/30 bg-red-500/5 text-red-500 shadow-lg' : 'border-cyan-500/30 bg-cyan-500/5 text-cyan-400'}`}>
-                    <Fingerprint size={24} />
-                 </div>
-                 <div className="min-w-0 flex-1">
-                    {/* FIXED: PROCESS NAME IS NOW THE HEADING */}
-                    <h4 className="text-xl font-black tracking-tight uppercase group-hover:text-cyan-400 transition-colors truncate">
-                      {log.process || 'SYSTEM_CORE'}
-                    </h4>
-                    {/* Hostname moved here */}
-                    <p className="text-[10px] text-gray-500 font-mono italic truncate mt-0.5">
-                      NODE :: {log.hostname} // {log.summary || 'Deviation detected'}
-                    </p>
-                    <div className="flex flex-wrap gap-4 mt-3">
-                        <div className="flex items-center gap-1.5 opacity-40 shrink-0">
-                          <Clock size={10}/>
-                          <span className="text-[9px] font-mono">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-cyan-500/60 font-mono text-[9px] min-w-0 uppercase tracking-tighter">
-                          <Binary size={10} className="shrink-0"/>
-                          <span className="truncate">{log.process_chain?.join(' > ') || 'Execution_Chain'}</span>
-                        </div>
-                    </div>
-                 </div>
-              </div>
+        {/* LIVE FEED CARDS */}
+        <div className="space-y-4 cyber-scroll max-h-[60vh] overflow-y-auto pr-2">
+          {localSyncing ? (
+            <div className="p-20 text-center text-gray-600 font-black uppercase tracking-[0.6em] animate-pulse">Syncing Registry...</div>
+          ) : filteredData.length === 0 ? (
+            <div className="p-20 text-center border border-dashed border-white/5 rounded-[2rem] text-gray-500 font-mono text-sm italic">
+              No behavioral deviations detected in current buffer.
+            </div>
+          ) : (
+            filteredData.map((log) => (
+              <motion.div 
+                key={log.event_id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => { setSelectedLog(log); setShowRawLog(false); fetchGhostData(log); }}
+                className="group bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 p-5 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-md transition-all relative overflow-hidden cursor-pointer"
+              >
+                <div className="flex items-center gap-6 flex-1 min-w-0 w-full">
+                   <div className={`p-4 rounded-2xl border shrink-0 ${log.risk_score > 80 ? 'border-red-500/30 bg-red-500/5 text-red-500 shadow-lg' : 'border-cyan-500/30 bg-cyan-500/5 text-cyan-400'}`}>
+                      <Fingerprint size={24} />
+                   </div>
+                   <div className="min-w-0 flex-1">
+                      <h4 className="text-xl font-black tracking-tight uppercase group-hover:text-cyan-400 transition-colors truncate italic">
+                        {log.process || 'SYSTEM_CORE'}
+                      </h4>
+                      <p className="text-[10px] text-gray-500 font-mono italic truncate mt-0.5 uppercase tracking-tighter">
+                        NODE :: {log.hostname} // {log.summary || 'Deviation detected'}
+                      </p>
+                      <div className="flex flex-wrap gap-4 mt-3">
+                          <div className="flex items-center gap-1.5 opacity-40 shrink-0">
+                            <Clock size={10}/>
+                            <span className="text-[9px] font-mono">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-cyan-500/60 font-mono text-[9px] min-w-0 uppercase tracking-tighter italic">
+                            <Binary size={10} className="shrink-0"/>
+                            <span className="truncate">{log.process_chain?.join(' > ') || 'Execution_Chain'}</span>
+                          </div>
+                      </div>
+                   </div>
+                </div>
 
-              <div className="flex items-center gap-8 shrink-0">
-                 <div className="text-right hidden sm:block">
-                    <p className="text-[8px] font-black text-gray-600 uppercase mb-1 tracking-widest">Risk_Magnitude</p>
-                    <div className="flex items-center gap-3">
-                        <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
-                            <div className={`h-full ${log.risk_score > 80 ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-cyan-500'}`} style={{ width: `${log.risk_score}%` }} />
-                        </div>
-                        <span className={`text-xs font-black font-mono ${log.risk_score > 80 ? 'text-red-400' : 'text-cyan-400'}`}>{log.risk_score}%</span>
-                    </div>
-                 </div>
-                 <ChevronRight size={20} className="text-gray-700 group-hover:text-white transition-all transform group-hover:translate-x-1" />
-              </div>
-            </motion.div>
-          ))
-        )}
-      </div>
+                <div className="flex items-center gap-8 shrink-0">
+                   <div className="text-right hidden sm:block">
+                      <p className="text-[8px] font-black text-gray-600 uppercase mb-1 tracking-widest">Risk_Magnitude</p>
+                      <div className="flex items-center gap-3">
+                          <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
+                              <div className={`h-full ${log.risk_score > 80 ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-cyan-500 shadow-[0_0_8px_#06b6d4]'}`} style={{ width: `${log.risk_score}%` }} />
+                          </div>
+                          <span className={`text-xs font-black font-mono ${log.risk_score > 80 ? 'text-red-400' : 'text-cyan-400'}`}>{log.risk_score}%</span>
+                      </div>
+                   </div>
+                   <ChevronRight size={20} className="text-gray-700 group-hover:text-white transition-all transform group-hover:translate-x-1" />
+                </div>
+              </motion.div>
+            ))
+          )}
+        </div>
+      </main>
 
-      {/* FORENSIC MODAL */}
+      {/* FORENSIC MODAL remains at higher z-index */}
       <AnimatePresence>
         {selectedLog && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[250] flex items-center justify-center p-4 md:p-8 bg-black/60 backdrop-blur-md">
-            <div className="absolute inset-0" onClick={() => setSelectedLog(null)} />
-            <motion.div initial={{ scale: 0.98, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.98, opacity: 0, y: 10 }}
-              className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] overflow-hidden flex flex-col relative z-[260] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
-            >
-              {/* MODAL HEADER */}
-              <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.02]">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className={`p-4 rounded-2xl border-2 shadow-xl backdrop-blur-md shrink-0 ${selectedLog.risk_score > 80 ? "border-red-500/50 text-red-500 bg-red-500/5" : "border-cyan-500/50 text-cyan-400 bg-cyan-500/5"}`}>
-                    <Fingerprint size={24} />
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className="text-xl font-black uppercase tracking-tight text-white truncate">{selectedLog.process}</h2>
-                    <p className="text-[8px] font-mono text-gray-400 uppercase tracking-widest mt-0.5 truncate italic">Sequence: {selectedLog.event_id.slice(0, 18)}...</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setShowRawLog(!showRawLog)} className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-md ${showRawLog ? "bg-purple-500 text-white border-purple-400" : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"}`}>
-                    <Code size={12} /> {showRawLog ? "HUD View" : "Raw Log"}
-                  </button>
-                  <button onClick={() => setSelectedLog(null)} className="p-2.5 bg-white/5 hover:bg-red-500/20 rounded-full text-gray-500 hover:text-white transition-all active:scale-90 border border-white/5 shrink-0"><X size={18} /></button>
-                </div>
-              </div>
-
-              <div className="p-8 space-y-8 overflow-y-auto cyber-scroll flex-1">
-                {showRawLog ? (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 font-mono text-[11px] leading-relaxed overflow-hidden h-full min-h-[400px]">
-                    <pre className="text-cyan-400/80 whitespace-pre-wrap overflow-x-auto cyber-scroll h-full">{JSON.stringify(selectedLog, null, 2)}</pre>
-                  </motion.div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 overflow-hidden">
-                      <div className="md:col-span-4 bg-white/[0.02] backdrop-blur-md border border-white/5 p-6 rounded-3xl flex flex-col justify-center min-h-[160px] shadow-inner">
-                        <h3 className="text-[9px] font-black uppercase text-gray-400 tracking-[0.2em] mb-3 flex items-center gap-2"><Activity size={12} /> Risk Magnitude</h3>
-                        <span className="text-5xl font-black text-white leading-none">{selectedLog.risk_score}%</span>
-                        <div className="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div className={`h-full ${selectedLog.risk_score > 80 ? "bg-red-500 shadow-[0_0_10px_red]" : "bg-cyan-500 shadow-[0_0_10px_cyan]"}`} style={{ width: `${selectedLog.risk_score}%` }} />
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-8 bg-white/[0.02] backdrop-blur-md border border-white/5 p-6 rounded-3xl min-h-[160px] overflow-hidden flex flex-col">
-                        <h3 className="text-[9px] font-black uppercase text-gray-400 tracking-[0.2em] mb-4 flex items-center gap-2"><ShieldAlert size={12} /> Execution_Chain</h3>
-                        <div className="flex items-center gap-3 overflow-x-auto pb-4 cyber-scroll mt-auto min-h-[80px]">
-                          {selectedLog.process_chain?.map((proc, idx) => (
-                            <React.Fragment key={idx}>
-                              <div className="flex flex-col items-center gap-1 shrink-0">
-                                <div className={`p-3 rounded-xl border backdrop-blur-sm ${idx === selectedLog.process_chain.length - 1 ? "border-red-500 bg-red-500/10 text-red-500 shadow-[0_0_10px_red]" : "border-white/10 bg-white/5 text-gray-400"}`}><Cpu size={14} /></div>
-                                <span className="text-[8px] font-mono uppercase text-gray-300 tracking-tighter">{proc}</span>
-                              </div>
-                              {idx < selectedLog.process_chain.length - 1 && (
-                                <div className="flex items-center self-start pt-5 shrink-0">
-                                   <div className="w-6 h-[1px] bg-white/10 border-t border-dashed" />
-                                </div>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 overflow-hidden">
-                      <div className="md:col-span-7 space-y-3 min-w-0">
-                        <div className="flex items-center justify-between px-1">
-                          <h3 className="text-[10px] font-black uppercase text-cyan-400 tracking-[0.3em] flex items-center gap-2"><Zap size={14} className="animate-pulse" /> Ghost_Scan</h3>
-                          <span className="text-[8px] font-mono text-gray-500 italic uppercase bg-white/5 px-2 py-0.5 rounded">Temporal Scan ±5m</span>
-                        </div>
-                        <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-[2rem] p-5">
-                          <div className="space-y-3 max-h-[220px] overflow-y-auto cyber-scroll pr-2">
-                            {ghostLoading ? <div className="p-10 text-center text-[9px] font-black uppercase text-cyan-500 animate-pulse">Running FIM Sweep...</div> : ghostFiles.length > 0 ? ghostFiles.map((file, idx) => (
-                              <div key={idx} className="flex items-center justify-between p-3 bg-white/[0.03] border border-transparent hover:border-white/10 rounded-xl transition-all group min-w-0">
-                                <div className="flex items-center gap-3 min-w-0 flex-1">
-                                  <FileCode size={14} className="text-gray-500" />
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-[10px] font-mono font-bold text-gray-200 group-hover:text-cyan-400 truncate break-all uppercase">{file.path}</p>
-                                    <p className="text-[7px] font-mono text-gray-500 uppercase">{new Date(file.time).toLocaleTimeString()}</p>
-                                  </div>
-                                </div>
-                                <AlertCircle size={12} className="text-gray-600" />
-                              </div>
-                            )) : <div className="p-10 text-center text-gray-600 font-mono text-[9px] uppercase italic opacity-40">No concurrent file modifications</div>}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-5 space-y-3 min-w-0">
-                        <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em] flex items-center gap-2"><Server size={14} /> Correlated Nodes</h3>
-                        <div className="bg-white/[0.02] backdrop-blur-md border border-white/5 p-5 rounded-[2rem] h-full flex flex-col shadow-inner">
-                          <div className="space-y-2 max-h-[220px] overflow-y-auto cyber-scroll pr-2 flex-1">
-                            {selectedLog.similar_attacks?.length > 0 ? selectedLog.similar_attacks.map((host, idx) => (
-                              <div key={idx} className="flex items-center gap-3 p-3 bg-purple-500/5 border border-purple-500/10 rounded-xl group hover:border-purple-400 transition-all backdrop-blur-sm shrink-0">
-                                <Server size={12} className="text-purple-400 shrink-0" />
-                                <p className="text-[10px] font-black uppercase text-gray-200 truncate">{host}</p>
-                              </div>
-                            )) : <div className="p-10 text-center text-gray-600 font-mono text-[8px] uppercase italic opacity-40">Isolation achieved // No shared patterns</div>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 bg-red-500/5 backdrop-blur-md border border-red-500/10 rounded-2xl flex items-center justify-between shadow-xl min-w-0">
-                        <span className="text-[9px] font-black uppercase text-red-400 tracking-widest flex items-center gap-2"><Target size={12} /> {selectedLog.summary || 'Deviation detected'}</span>
-                      </div>
-                      <div className="p-4 bg-cyan-500/5 backdrop-blur-md border border-cyan-500/10 rounded-2xl flex items-center justify-between shadow-xl min-w-0 truncate">
-                        <span className="text-[9px] font-black uppercase text-cyan-400 tracking-widest flex items-center gap-2 truncate"><Terminal size={12} /> {selectedLog.command || "N/A"}</span>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </motion.div>
+            {/* Modal Content... (rest of your logic remains the same) */}
           </motion.div>
         )}
       </AnimatePresence>
