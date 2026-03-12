@@ -105,7 +105,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-[#020617]">
       {/* Fixed Topbar */}
-      <Topbar name="Telemetry" desc="Infrastructure_Operational_Link" />
+      <Topbar name="Dashboard" desc="Infrastructure_Operational_Link" />
 
       {/* LAYOUT CONTAINER:
           mt-24 accounts for the Topbar height.

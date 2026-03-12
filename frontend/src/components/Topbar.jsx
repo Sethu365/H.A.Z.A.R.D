@@ -24,7 +24,7 @@ const Topbar = ({ name, desc }) => {
         {/* LEFT SECTION: BACK BUTTON + IDENTITY */}
         <div className="flex items-center gap-4 md:gap-8 min-w-0">
           {/* BACK BUTTON - NOW ON THE LEFT */}
-          <button
+          {/* <button
             onClick={() => navigate(-1)}
             className="group relative flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl bg-white text-black hover:bg-cyan-400 transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.4)] shrink-0 overflow-hidden"
           >
@@ -33,7 +33,7 @@ const Topbar = ({ name, desc }) => {
             <span className="hidden sm:block text-[10px] md:text-xs font-black italic tracking-tight font-sans uppercase">
               Return
             </span>
-          </button>
+          </button> */}
 
           {/* IDENTITY */}
           <div className="space-y-0.5 md:space-y-1 min-w-0">
@@ -58,7 +58,7 @@ const Topbar = ({ name, desc }) => {
         </div>
 
         {/* BORDER ACCENT */}
-        <div className="absolute bottom-[-1px] left-0 w-16 md:w-32 h-[2px] bg-cyan-500 shadow-[0_0_15px_#06b6d4] rounded-r-full" />
+        {/* <div className="absolute bottom-[-1px] left-0 w-16 md:w-32 h-[2px] bg-cyan-500 shadow-[0_0_15px_#06b6d4] rounded-r-full" /> */}
       </div>
     </motion.header>
   );
