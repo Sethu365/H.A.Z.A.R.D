@@ -45,7 +45,7 @@ function App() {
               <Route path="/clients/:hostname/client-anomaly/history" element={<ClientAnomalyHistory />} />
               <Route path="anomalies" element={<Anomalies />} />
               <Route path="anomalies/history" element={<AnomalyHistory />} />
-              <Route path="settings" element={<Settings />} />
+              {/* <Route path="settings" element={<Settings />} /> */}
               <Route path="scraper" element={<Intel />} />
             </Route>
           </Routes>
