@@ -22,6 +22,7 @@ const SplashScreen = ({ onFinish }) => {
             fixed inset-0 z-50
             flex items-center justify-center
             bg-[#020617]
+            font-inter
           "
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -45,14 +46,15 @@ const SplashScreen = ({ onFinish }) => {
               <div className="absolute inset-0 rounded-full bg-cyan-400/20 blur-2xl -z-10" />
             </motion.div>
 
-            {/* Title */}
+            {/* Title - Inter */}
             <motion.h1
               className="
                 mt-6
                 text-3xl
-                font-semibold
-                tracking-widest
+                font-black
+                tracking-[0.4em]
                 text-white
+                uppercase
               "
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -61,13 +63,15 @@ const SplashScreen = ({ onFinish }) => {
               A.U.R.O.R.A
             </motion.h1>
 
-            {/* Subtitle */}
+            {/* Subtitle - Roboto Condensed */}
             <motion.p
               className="
                 mt-2
                 text-sm
                 text-gray-400
-                tracking-wide
+                tracking-widest
+                font-roboto-condensed
+                uppercase
               "
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -86,7 +90,7 @@ const SplashScreen = ({ onFinish }) => {
               {[0, 1, 2].map(i => (
                 <motion.span
                   key={i}
-                  className="w-2 h-2 rounded-full bg-cyan-400"
+                  className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"
                   animate={{ opacity: [0.3, 1, 0.3] }}
                   transition={{
                     duration: 1.2,
@@ -104,5 +108,3 @@ const SplashScreen = ({ onFinish }) => {
 };
 
 export default SplashScreen;
-
-

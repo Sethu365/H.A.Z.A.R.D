@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom"; // Added useNavigate
+import { NavLink, useLocation, useNavigate } from "react-router-dom"; 
 import { motion } from "framer-motion";
 import eyeLogo from "../assets/eye.png";
 import {
@@ -9,7 +9,7 @@ import {
 
 const Sidebar = () => {
   const location = useLocation();
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate(); 
   const clientPathMatch = location.pathname.match(/^\/clients\/([^/]+)/);
   const hostname = clientPathMatch ? clientPathMatch[1] : null;
 
@@ -35,7 +35,7 @@ const Sidebar = () => {
     <motion.aside
       initial={{ x: -100, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="fixed left-0 top-0 h-screen w-24 hover:w-64 group transition-all duration-500 ease-in-out bg-[#020617] border-r border-cyan-500/10 flex flex-col z-50 overflow-hidden"
+      className="fixed left-0 top-0 h-screen w-24 hover:w-64 group transition-all duration-500 ease-in-out bg-[#020617] border-r border-cyan-500/10 flex flex-col z-50 overflow-hidden font-inter"
     >
       {/* GLOW OVERLAY */}
       <div className="absolute top-0 -left-20 w-40 h-full bg-cyan-500/5 blur-[100px] pointer-events-none" />
@@ -47,12 +47,12 @@ const Sidebar = () => {
           <div className="absolute -inset-2 bg-cyan-500/10 blur-lg rounded-full animate-pulse" />
         </div>
         <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden">
-          <h1 className="text-sm font-black tracking-[0.3em] text-white italic uppercase font-sans">A.U.R.O.R.A</h1>
+          <h1 className="font-roboto-condensed text-sm font-black tracking-[0.3em] text-white uppercase">A.U.R.O.R.A</h1>
         </div>
       </div>
 
       {/* NAVIGATION */}
-      <nav className="flex-1 px-4 py-8 space-y-4 overflow-y-auto cyber-scroll">
+      <nav className="flex-1 px-4 py-8 space-y-4 overflow-y-auto cyber-scroll font-roboto-condensed">
         
         {/* TACTICAL RETURN / EXIT MODULE */}
         <button
@@ -61,7 +61,7 @@ const Sidebar = () => {
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <ChevronLeft className="w-6 h-6 shrink-0 group-hover:-translate-x-1 transition-transform" />
-          <span className="hidden group-hover:block text-xs font-black italic tracking-tighter uppercase whitespace-nowrap">
+          <span className="hidden group-hover:block text-xs font-black tracking-tighter uppercase whitespace-nowrap">
             {hostname ? "Exit_Node" : "Return_Step"}
           </span>
         </button>
@@ -80,7 +80,7 @@ const Sidebar = () => {
             `}
           >
             <Icon className="w-6 h-6 shrink-0 transition-transform duration-300 group-active:scale-90" />
-            <span className="hidden group-hover:block text-xs font-black uppercase tracking-widest italic whitespace-nowrap">
+            <span className="hidden group-hover:block text-xs font-black uppercase tracking-widest whitespace-nowrap">
               {label}
             </span>
           </NavLink>
@@ -90,12 +90,12 @@ const Sidebar = () => {
       {/* FOOTER STATUS */}
       <div className="p-4 mb-4">
         <div className="flex flex-col items-center group-hover:items-start p-3 rounded-2xl bg-white/5 border border-white/5 transition-all">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 font-roboto-condensed">
             <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e] animate-pulse" />
             <span className="hidden group-hover:block text-[10px] font-black uppercase text-green-500 tracking-tighter">System_Active</span>
           </div>
           <div className="hidden group-hover:block mt-2">
-            <p className="text-[8px] font-mono text-gray-500 truncate w-40 italic">
+            <p className="font-jetbrains text-[8px] text-gray-500 truncate w-40 uppercase">
               {hostname ? `Target: ${hostname}` : "Secure_Registry_Linked"}
             </p>
           </div>

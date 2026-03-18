@@ -10,7 +10,6 @@ import {
 } from "recharts";
 
 const TimelineChart = ({ data = [] }) => {
-  // 1. Responsive State to adjust layout for mobile
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
 
   useEffect(() => {
@@ -21,17 +20,16 @@ const TimelineChart = ({ data = [] }) => {
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 italic border border-dashed border-white/5 rounded-2xl">
+      <div className="font-roboto-condensed h-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 border border-dashed border-white/5 rounded-2xl">
         Buffer_Empty // Awaiting_Link
       </div>
     );
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height="100%" className="font-inter">
       <LineChart
         data={data}
-        // 2. Tighter margins for mobile to utilize every pixel
         margin={{ 
           top: 10, 
           right: isMobile ? 5 : 15, 
@@ -47,7 +45,7 @@ const TimelineChart = ({ data = [] }) => {
 
         <XAxis
           dataKey="time"
-          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800 }}
+          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800, fontFamily: 'JetBrains Mono' }}
           tickLine={false}
           axisLine={false}
           minTickGap={isMobile ? 40 : 30}
@@ -56,16 +54,14 @@ const TimelineChart = ({ data = [] }) => {
 
         <YAxis
           domain={[0, 100]}
-          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800 }}
+          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800, fontFamily: 'JetBrains Mono' }}
           tickLine={false}
           axisLine={false}
-          // 3. Hide YAxis values on mobile to give room to the graph lines
           hide={isMobile}
         />
 
         <Tooltip
           cursor={{ stroke: "rgba(6, 182, 212, 0.2)", strokeWidth: 1 }}
-          // 4. Fixed position for tooltip on mobile so it doesn't jump
           position={isMobile ? { y: 0 } : undefined}
           contentStyle={{
             backgroundColor: "rgba(2, 6, 23, 0.95)",
@@ -75,7 +71,8 @@ const TimelineChart = ({ data = [] }) => {
             fontSize: "10px",
             color: "#fff",
             boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)",
-            padding: "8px 12px"
+            padding: "8px 12px",
+            fontFamily: 'JetBrains Mono'
           }}
           itemStyle={{ padding: "0" }}
           labelStyle={{
@@ -84,7 +81,8 @@ const TimelineChart = ({ data = [] }) => {
             fontWeight: "900",
             textTransform: "uppercase",
             letterSpacing: "0.15em",
-            fontSize: "8px"
+            fontSize: "8px",
+            fontFamily: 'Roboto Condensed'
           }}
         />
 
@@ -95,7 +93,7 @@ const TimelineChart = ({ data = [] }) => {
           stroke="#06b6d4" 
           strokeWidth={isMobile ? 1.5 : 2.5}
           dot={false}
-          isAnimationActive={false} // Disabled for smoother real-time feel
+          isAnimationActive={false} 
           style={{ filter: "drop-shadow(0px 0px 8px rgba(6, 182, 212, 0.6))" }}
         />
 

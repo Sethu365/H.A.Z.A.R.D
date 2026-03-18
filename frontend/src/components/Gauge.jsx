@@ -47,11 +47,12 @@ const Gauge = ({
         flex flex-col items-center justify-center
         transition-all duration-500
         w-full
+        font-inter
         ${isOffline ? 'opacity-40' : 'opacity-100 shadow-xl'}
       `}
     >
-      {/* LABEL - Scales for mobile */}
-      <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-4 md:mb-6 text-center italic">
+      {/* LABEL - Roboto Condensed */}
+      <span className="font-roboto-condensed text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-4 md:mb-6 text-center">
         {label}
       </span>
 
@@ -89,7 +90,7 @@ const Gauge = ({
             initial={{ strokeDashoffset: circumference }}
             transition={{
               duration: 1.5,
-              ease: [0.16, 1, 0.3, 1] // Tactical expo-out ease
+              ease: [0.16, 1, 0.3, 1] 
             }}
             style={{
               filter: isOffline ? 'none' : `drop-shadow(0 0 12px ${color}66)`
@@ -97,13 +98,13 @@ const Gauge = ({
           />
         </svg>
 
-        {/* CENTER TELEMETRY READOUT */}
+        {/* CENTER TELEMETRY READOUT - JetBrains Mono for values */}
         <div className="absolute flex flex-col items-center">
           <motion.span
-            key={safeValue} // Triggers animation on value change
+            key={safeValue} 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={`font-black tabular-nums tracking-tighter transition-colors duration-500 font-sans italic
+            className={`font-jetbrains font-black tabular-nums tracking-tighter transition-colors duration-500
               ${isOffline ? 'text-2xl' : 'text-3xl md:text-4xl'}
             `}
             style={{ color: isOffline ? "#6b7280" : "white" }}
@@ -111,7 +112,8 @@ const Gauge = ({
             {isOffline ? "--" : `${safeValue.toFixed(0)}${unit}`}
           </motion.span>
           
-          <span className={`text-[7px] md:text-[8px] font-black uppercase tracking-widest mt-1
+          {/* HUD Label: Roboto Condensed */}
+          <span className={`font-roboto-condensed text-[7px] md:text-[8px] font-black uppercase tracking-widest mt-1
             ${isOffline ? 'text-gray-600' : 'text-cyan-500/60'}
           `}>
             {isOffline ? "link_lost" : "utilization"}
@@ -119,7 +121,7 @@ const Gauge = ({
         </div>
       </div>
       
-      {/* BOTTOM ACCENT (Visible on Desktop) */}
+      {/* BOTTOM ACCENT */}
       {!isOffline && (
         <div className="hidden md:block mt-6 w-12 h-[2px] bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-full" />
       )}

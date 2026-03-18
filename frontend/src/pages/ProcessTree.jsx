@@ -35,14 +35,14 @@ const HorizontalTreeNode = ({ node, selectedPid }) => {
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isSelected ? "bg-black animate-pulse" : "bg-cyan-500"}`} />
-            <span className={`text-[9px] font-black uppercase tracking-widest italic ${isSelected ? "text-black" : "text-gray-400"}`}>{eventType}</span>
+            <span className={`font-roboto-condensed text-[9px] font-black uppercase tracking-widest ${isSelected ? "text-black" : "text-gray-400"}`}>{eventType}</span>
           </div>
-          <span className={`text-[9px] font-mono font-bold ${isSelected ? "text-black/60" : "text-gray-500"}`}>{timestamp}</span>
+          <span className={`font-jetbrains text-[9px] font-bold ${isSelected ? "text-black/60" : "text-gray-500"}`}>{timestamp}</span>
         </div>
         <div className="space-y-3">
-          <p className={`text-xs font-black italic uppercase tracking-tight break-all leading-tight ${isSelected ? "text-black" : "text-cyan-400"}`}>{filePath}</p>
+          <p className={`font-inter text-xs font-black uppercase tracking-tight break-all leading-tight ${isSelected ? "text-black" : "text-cyan-400"}`}>{filePath}</p>
           <div className={`${isSelected ? "bg-black/10" : "bg-black/40"} p-3 rounded-xl border ${isSelected ? "border-black/10" : "border-white/5"}`}>
-            <p className={`text-[10px] font-mono leading-relaxed line-clamp-2 italic ${isSelected ? "text-black/70" : "text-gray-400"}`}>{command || "No arguments"}</p>
+            <p className={`font-jetbrains text-[10px] leading-relaxed line-clamp-2 ${isSelected ? "text-black/70" : "text-gray-400"}`}>{command || "No arguments"}</p>
           </div>
         </div>
       </motion.div>
@@ -125,22 +125,16 @@ const ProcessTree = ({ setLoading, setError }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white flex flex-col overflow-hidden">
-      {/* IMPORTANT: Topbar is fixed, so we handle vertical offset with pt-24 in the main tag.
-      */}
+    <div className="min-h-screen bg-[#020617] text-white flex flex-col overflow-hidden font-inter">
       <Topbar name="Forensic Timeline" desc={`Node_Analysis :: ${hostname}`} />
 
-      {/* SIDEBAR OFFSET FIX: 
-        Added lg:ml-20 to ensure it doesn't collide with your fixed sidebar. 
-        Adjust the margin value (20, 64, etc.) to match your specific Sidebar width.
-      */}
       <main className="flex-1 pt-24 pb-20 px-4 md:px-8 lg:ml-20 max-w-[1800px] w-full flex flex-col lg:flex-row gap-6 overflow-hidden transition-all duration-500">
         
         {/* LEFT COLUMN: REGISTRY */}
         <div className={`flex flex-col space-y-6 transition-all duration-500 h-full ${selectedNode ? 'hidden lg:flex lg:w-1/3 xl:w-1/4' : 'w-full'}`}>
           <header className="bg-white/[0.02] border border-white/5 p-4 rounded-[2rem] flex flex-col gap-4">
             <div className="flex items-center justify-between px-2">
-               <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest italic">Process_Registry</span>
+               <span className="font-roboto-condensed text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Process_Registry</span>
                <button onClick={() => fetchTree()} className="p-2 bg-white/5 rounded-lg">
                 <RefreshCw size={14} className={localSyncing ? 'animate-spin text-cyan-400' : 'text-gray-500'}/>
                </button>
@@ -152,7 +146,7 @@ const ProcessTree = ({ setLoading, setError }) => {
                 placeholder="Filter PID..." 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
-                className="bg-black/40 border border-white/10 rounded-2xl py-2.5 pl-11 pr-4 text-[10px] font-black text-cyan-400 uppercase outline-none w-full focus:border-cyan-500/50" 
+                className="font-roboto-condensed bg-black/40 border border-white/10 rounded-2xl py-2.5 pl-11 pr-4 text-[10px] font-black text-cyan-400 uppercase outline-none w-full focus:border-cyan-500/50" 
               />
             </div>
           </header>
@@ -161,7 +155,7 @@ const ProcessTree = ({ setLoading, setError }) => {
             <div className="overflow-y-auto cyber-scroll flex-1">
               <table className="w-full text-left">
                 <thead className="sticky top-0 bg-[#0a0c14] z-20 border-b border-white/5">
-                  <tr className="text-[9px] font-black uppercase text-gray-500 tracking-widest">
+                  <tr className="font-roboto-condensed text-[9px] font-black uppercase text-gray-500 tracking-widest">
                     <th className="px-6 py-4">Event</th>
                     <th className="px-4 py-4 text-right">PID</th>
                   </tr>
@@ -170,10 +164,10 @@ const ProcessTree = ({ setLoading, setError }) => {
                   {filteredEvents.map((ev, i) => (
                     <tr key={i} onClick={() => setSelectedNode(ev)} className={`group cursor-pointer hover:bg-cyan-500/[0.05] transition-all ${selectedNode?.pid === ev.pid ? 'bg-white text-black' : ''}`}>
                       <td className="px-6 py-4">
-                        <p className={`text-[11px] font-black uppercase italic ${selectedNode?.pid === ev.pid ? 'text-black' : 'text-cyan-400'}`}>{ev.event_type}</p>
-                        <p className={`text-[9px] font-mono font-bold ${selectedNode?.pid === ev.pid ? 'text-black/60' : 'text-gray-500'}`}>{new Date(ev.timestamp).toLocaleTimeString([], { hour12: false })}</p>
+                        <p className={`font-roboto-condensed text-[11px] font-black uppercase ${selectedNode?.pid === ev.pid ? 'text-black' : 'text-cyan-400'}`}>{ev.event_type}</p>
+                        <p className={`font-jetbrains text-[9px] font-bold ${selectedNode?.pid === ev.pid ? 'text-black/60' : 'text-gray-500'}`}>{new Date(ev.timestamp).toLocaleTimeString([], { hour12: false })}</p>
                       </td>
-                      <td className={`px-4 py-4 text-right font-bold text-xs ${selectedNode?.pid === ev.pid ? 'text-black' : 'text-white'}`}>{ev.pid}</td>
+                      <td className={`font-jetbrains px-4 py-4 text-right font-bold text-xs ${selectedNode?.pid === ev.pid ? 'text-black' : 'text-white'}`}>{ev.pid}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -192,7 +186,7 @@ const ProcessTree = ({ setLoading, setError }) => {
               className="flex-1 flex flex-col bg-[#05070a] border border-white/10 lg:border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl h-full"
             >
               <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                <div className="flex bg-black/40 border border-white/10 rounded-2xl p-1.5">
+                <div className="font-roboto-condensed flex bg-black/40 border border-white/10 rounded-2xl p-1.5">
                    <button onClick={() => setViewMode('table')} className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase transition-all ${viewMode === 'table' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}>Inspector</button>
                    <button onClick={() => setViewMode('tree')} className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase transition-all ${viewMode === 'tree' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}>Ancestry Tree</button>
                 </div>
@@ -204,23 +198,23 @@ const ProcessTree = ({ setLoading, setError }) => {
                   <div className="p-8 space-y-8">
                      <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white/[0.02] p-6 rounded-[1.5rem] border border-white/5">
-                           <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1 italic">Process_PID</p>
-                           <p className="text-xl font-black text-white italic">{selectedNode.pid}</p>
+                           <p className="font-roboto-condensed text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">Process_PID</p>
+                           <p className="font-jetbrains text-xl font-black text-white">{selectedNode.pid}</p>
                         </div>
                         <div className="bg-white/[0.02] p-6 rounded-[1.5rem] border border-white/5">
-                           <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1 italic">Parent_PID</p>
-                           <p className="text-xl font-black text-gray-400 italic">{selectedNode.ppid || "0"}</p>
+                           <p className="font-roboto-condensed text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">Parent_PID</p>
+                           <p className="font-jetbrains text-xl font-black text-gray-400">{selectedNode.ppid || "0"}</p>
                         </div>
                      </div>
                      <div className="space-y-4">
-                        <h3 className="text-[9px] font-black text-gray-500 uppercase tracking-[0.4em] italic px-2">Node_Event_Stream</h3>
+                        <h3 className="font-roboto-condensed text-[9px] font-black text-gray-500 uppercase tracking-[0.4em] px-2">Node_Event_Stream</h3>
                         {selectedNode.full_node.events.map((ev, idx) => (
                            <div key={idx} className="bg-black/60 rounded-[2rem] border border-white/5 p-6 md:p-8 shadow-2xl relative overflow-hidden group">
                               <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
-                                 <span className="text-cyan-400 text-[10px] font-black uppercase italic tracking-widest">{ev.event_type}</span>
-                                 <span className="text-gray-600 text-[10px] font-mono font-bold italic">{new Date(ev.timestamp).toLocaleTimeString()}</span>
+                                 <span className="font-roboto-condensed text-cyan-400 text-[10px] font-black uppercase tracking-widest">{ev.event_type}</span>
+                                 <span className="font-jetbrains text-gray-600 text-[10px] font-bold">{new Date(ev.timestamp).toLocaleTimeString()}</span>
                               </div>
-                              <pre className="text-xs text-gray-300 font-mono leading-relaxed whitespace-pre-wrap selection:bg-cyan-500/30">
+                              <pre className="font-jetbrains text-xs text-gray-300 leading-relaxed whitespace-pre-wrap selection:bg-cyan-500/30">
                                  {JSON.stringify(ev.details, null, 2)}
                               </pre>
                            </div>

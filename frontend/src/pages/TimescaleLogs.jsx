@@ -57,7 +57,7 @@ const TimescaleLogs = () => {
   const chartData = rateData(logs);
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white">
+    <div className="min-h-screen bg-[#020617] text-white font-inter">
       <Topbar name="Uplink Stream" desc="TimescaleDB_Forensic_Telemetery" />
 
       <main className="pt-24 pb-20 px-4 md:px-8 space-y-6 max-w-7xl mx-auto overflow-x-hidden">
@@ -69,7 +69,7 @@ const TimescaleLogs = () => {
         >
           <div className="flex items-center gap-3 mb-6">
             <Activity className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-xs md:text-sm font-black uppercase tracking-[0.2em] text-gray-100 italic">Ingestion_Velocity</h3>
+            <h3 className="font-roboto-condensed text-xs md:text-sm font-black uppercase tracking-[0.2em] text-gray-100">Ingestion_Velocity</h3>
           </div>
 
           <div className="h-48 md:h-64 w-full">
@@ -78,13 +78,13 @@ const TimescaleLogs = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" vertical={false} opacity={0.05} />
                 <XAxis
                   dataKey="time"
-                  tick={{ fill: "#6b7280", fontSize: 9, fontWeight: 700 }}
+                  tick={{ fill: "#6b7280", fontSize: 9, fontWeight: 700, fontFamily: 'Roboto Condensed' }}
                   tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   axisLine={false} tickLine={false}
                 />
-                <YAxis tick={{ fill: "#6b7280", fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#6b7280", fontSize: 9, fontWeight: 700, fontFamily: 'Roboto Condensed' }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#020617", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "10px" }}
+                  contentStyle={{ backgroundColor: "#020617", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "10px", fontFamily: 'Roboto Condensed' }}
                   labelFormatter={(l) => `Time: ${new Date(l).toLocaleTimeString()}`}
                 />
                 <Line type="monotone" dataKey="count" stroke="#22d3ee" strokeWidth={2} dot={false} isAnimationActive={false} />
@@ -95,19 +95,19 @@ const TimescaleLogs = () => {
 
         {/* LOG CONTROLS */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-          <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
+          <div className="font-roboto-condensed flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
             <ListFilter size={14} />
             <span>Buffer_Size:</span>
             <select
               value={limit}
               onChange={(e) => { setOffset(0); setLimit(Number(e.target.value)); }}
-              className="bg-[#0a0c14] border border-white/10 rounded-lg px-3 py-1.5 text-cyan-400 outline-none focus:border-cyan-500 transition-all"
+              className="bg-[#0a0c14] border border-white/10 rounded-lg px-3 py-1.5 text-cyan-400 outline-none focus:border-cyan-500 transition-all font-inter"
             >
               {[25, 50, 100].map((v) => <option key={v} value={v}>{v} Rows</option>)}
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 font-roboto-condensed">
             <button 
               disabled={offset === 0} 
               onClick={() => setOffset(Math.max(0, offset - limit))}
@@ -128,20 +128,20 @@ const TimescaleLogs = () => {
         <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden backdrop-blur-md shadow-2xl">
           <div className="overflow-x-auto cyber-scroll">
             <table className="w-full text-left">
-              <thead className="bg-white/[0.02] border-b border-white/5 text-[9px] font-black uppercase text-gray-500 tracking-[0.3em]">
+              <thead className="bg-white/[0.02] border-b border-white/5 font-roboto-condensed text-[9px] font-black uppercase text-gray-500 tracking-[0.3em]">
                 <tr>
                   <th className="px-6 py-4">Temporal_Stamp</th>
                   <th className="px-6 py-4 text-center">Node_Source</th>
                   <th className="px-6 py-4 text-right">Raw_Telemetry</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+              <tbody className="divide-y divide-white/5 font-jetbrains text-[11px]">
                 {loading ? (
-                  <tr><td colSpan={3} className="p-10 text-center text-gray-600 animate-pulse">Syncing Log Registry...</td></tr>
+                  <tr><td colSpan={3} className="font-roboto-condensed p-10 text-center text-gray-600 animate-pulse uppercase tracking-widest">Syncing Log Registry...</td></tr>
                 ) : logs.map((row, idx) => (
                   <React.Fragment key={idx}>
                     <tr className="hover:bg-white/[0.01] transition-colors group">
-                      <td className="px-6 py-4 text-gray-400 italic">
+                      <td className="px-6 py-4 text-gray-400">
                         {row.event_time ? new Date(row.event_time).toLocaleString() : "---"}
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -149,7 +149,7 @@ const TimescaleLogs = () => {
                           {row.hostname || "UNKNOWN_NODE"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right font-roboto-condensed">
                         <button
                           onClick={() => setExpandedRow(expandedRow === idx ? null : idx)}
                           className="flex items-center gap-2 ml-auto text-gray-500 hover:text-white transition-colors group"
@@ -169,7 +169,7 @@ const TimescaleLogs = () => {
                               initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
                               className="p-6 border-y border-cyan-500/10"
                             >
-                              <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center justify-between mb-4 font-roboto-condensed">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-cyan-500/60">Forensic_Data_Packet</span>
                                 <button
                                   onClick={() => navigator.clipboard.writeText(JSON.stringify(row.original_payload, null, 2))}
@@ -178,7 +178,7 @@ const TimescaleLogs = () => {
                                   <Copy size={12} /> Sync to Clipboard
                                 </button>
                               </div>
-                              <pre className="text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-auto cyber-scroll p-4 bg-white/[0.02] rounded-xl border border-white/5">
+                              <pre className="font-jetbrains text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-auto cyber-scroll p-4 bg-white/[0.02] rounded-xl border border-white/5">
                                 {JSON.stringify(row.original_payload, null, 2)}
                               </pre>
                             </motion.div>

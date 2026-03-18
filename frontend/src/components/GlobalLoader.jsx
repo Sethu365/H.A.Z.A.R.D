@@ -8,7 +8,7 @@ const GlobalLoader = ({ loading, error, onRetry }) => {
       {(loading || error) && (
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#05070a]/90 backdrop-blur-3xl"
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#05070a]/90 backdrop-blur-3xl font-inter"
         >
           <div className="text-center space-y-8 p-12 max-w-md">
             {loading ? (
@@ -22,11 +22,11 @@ const GlobalLoader = ({ loading, error, onRetry }) => {
                   <motion.div 
                     animate={{ opacity: [0.4, 1, 0.4] }} 
                     transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.8em]"
+                    className="font-roboto-condensed text-[10px] font-black text-cyan-400 uppercase tracking-[0.8em]"
                   >
                     Establishing_Neural_Link
                   </motion.div>
-                  <p className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Syncing Global Telemetry Mesh...</p>
+                  <p className="font-jetbrains text-[8px] text-gray-500 uppercase tracking-widest">Syncing Global Telemetry Mesh...</p>
                 </div>
               </div>
             ) : (
@@ -40,12 +40,12 @@ const GlobalLoader = ({ loading, error, onRetry }) => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black text-white uppercase tracking-tighter italic">Uplink_Failure</h3>
-                  <p className="text-[10px] font-mono text-gray-500 uppercase leading-relaxed break-words">{error}</p>
+                  <h3 className="font-inter text-xl font-black text-white uppercase tracking-tighter">Uplink_Failure</h3>
+                  <p className="font-jetbrains text-[10px] text-gray-500 uppercase leading-relaxed break-words">{error}</p>
                 </div>
                 <button 
                   onClick={onRetry}
-                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-red-500 text-black text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-400 transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                  className="font-roboto-condensed w-full flex items-center justify-center gap-3 px-6 py-4 bg-red-500 text-black text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-400 transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]"
                 >
                   <RefreshCw size={14} /> Re-establish Link
                 </button>

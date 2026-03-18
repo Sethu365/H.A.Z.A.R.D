@@ -16,9 +16,11 @@ const InfoRow = ({ label, value, icon: Icon }) => (
       <div className="p-2 bg-white/5 rounded-lg border border-white/5 group-hover:border-cyan-500/20 group-hover:bg-cyan-500/5 transition-all">
         {Icon && <Icon size={14} className="text-gray-500 group-hover:text-cyan-400 transition-colors" />}
       </div>
-      <span className="text-gray-400 text-[9px] font-black uppercase tracking-[0.2em] italic">{label}</span>
+      {/* Labels: Roboto Condensed */}
+      <span className="text-gray-400 text-[9px] font-black uppercase tracking-[0.2em] font-roboto-condensed">{label}</span>
     </div>
-    <span className="text-white font-sans text-sm font-bold tracking-tight truncate ml-4 italic">
+    {/* Technical Values: JetBrains Mono */}
+    <span className="text-white font-jetbrains text-sm font-bold tracking-tight truncate ml-4">
       {value || "N/A"}
     </span>
   </div>
@@ -77,7 +79,8 @@ const ClientDetails = ({ setLoading, setError }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white">
+    // Base: Inter
+    <div className="min-h-screen bg-[#020617] text-white font-inter">
       <Topbar name={`Client: ${hostname}`} desc="Individual_Node_Diagnostics" />
 
       <main className="pt-24 pb-20 px-4 md:px-8 max-w-7xl mx-auto space-y-8 overflow-x-hidden">
@@ -91,18 +94,21 @@ const ClientDetails = ({ setLoading, setError }) => {
                 </motion.div>
             </div>
             <div>
-                <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">{hostname}</h2>
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] mt-2">
+                {/* Header: Inter */}
+                <h2 className="text-3xl font-black tracking-tighter uppercase leading-none font-inter">{hostname}</h2>
+                {/* Sub-label: Roboto Condensed */}
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em] mt-2 font-roboto-condensed">
                     {isOnline ? 'Encrypted_Uplink_Stable' : 'Uplink_Interrupted'}
                 </p>
             </div>
           </div>
 
-          <div className="flex flex-col items-start md:items-end gap-2 text-[9px] font-mono text-gray-500 uppercase tracking-widest">
+          {/* Technical Metadata: JetBrains Mono */}
+          <div className="flex flex-col items-start md:items-end gap-2 text-[9px] font-jetbrains text-gray-500 uppercase tracking-widest">
              <span className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
                 <Hash size={10} /> ID: {data?.sensor_id?.slice(0, 14) || "UNKNOWN"}
              </span>
-             <span>Poll_Rate: 5.0s // Proto: gRPC_v4</span>
+             <span className="font-roboto-condensed">Poll_Rate: 5.0s // <span className="font-jetbrains">Proto: gRPC_v4</span></span>
           </div>
         </div>
 
@@ -121,7 +127,8 @@ const ClientDetails = ({ setLoading, setError }) => {
               
               <div className="flex items-center gap-4 mb-10">
                 <div className="h-10 w-1.5 bg-cyan-500 rounded-full shadow-[0_0_15px_#06b6d4]" />
-                <h3 className="text-white font-black text-sm uppercase tracking-[0.3em] italic">Processor_Matrix</h3>
+                {/* Section Title: Roboto Condensed */}
+                <h3 className="text-white font-black text-sm uppercase tracking-[0.3em] font-roboto-condensed">Processor_Matrix</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
@@ -136,9 +143,11 @@ const ClientDetails = ({ setLoading, setError }) => {
                   <div className="flex justify-between items-end mb-5">
                       <div className="flex items-center gap-3">
                         <HardDrive size={18} className="text-cyan-400" />
-                        <span className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] italic">Disk_Volume_Analysis</span>
+                        {/* Label: Roboto Condensed */}
+                        <span className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] font-roboto-condensed">Disk_Volume_Analysis</span>
                       </div>
-                      <span className="text-3xl font-black italic text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                      {/* Percent: JetBrains Mono */}
+                      <span className="text-3xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] font-jetbrains">
                         {typeof data?.disk === 'number' ? data.disk.toFixed(1) : "0.0"}%
                       </span>
                   </div>
@@ -152,7 +161,8 @@ const ClientDetails = ({ setLoading, setError }) => {
                         <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.1)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.1)_50%,rgba(255,255,255,0.1)_75%,transparent_75%,transparent)] bg-[length:20px:20px] animate-[pulse_3s_linear_infinite]" />
                       </motion.div>
                   </div>
-                  <div className="flex justify-between mt-4 text-[8px] font-black text-gray-600 uppercase tracking-[0.3em] italic">
+                  {/* Labels: Roboto Condensed */}
+                  <div className="flex justify-between mt-4 text-[8px] font-black text-gray-600 uppercase tracking-[0.3em] font-roboto-condensed">
                     <span>Sector_Head</span>
                     <span className="text-cyan-500/40">Optimizing_Data_Mesh</span>
                     <span>Sector_Tail</span>
@@ -169,7 +179,8 @@ const ClientDetails = ({ setLoading, setError }) => {
             >
               <div className="flex items-center gap-4 mb-8">
                 <div className="h-10 w-1.5 bg-purple-500 rounded-full shadow-[0_0_15px_#a855f7]" />
-                <h3 className="text-white font-black text-sm uppercase tracking-[0.3em] italic">Identity_Vault</h3>
+                {/* Title: Roboto Condensed */}
+                <h3 className="text-white font-black text-sm uppercase tracking-[0.3em] font-roboto-condensed">Identity_Vault</h3>
               </div>
 
               <div className="space-y-2">
@@ -184,15 +195,17 @@ const ClientDetails = ({ setLoading, setError }) => {
                     <ShieldCheck size={20} className="text-green-400" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.1em] text-green-400 italic">Shield_Active</p>
-                    <p className="text-[8px] font-mono text-green-500/40 uppercase">AES-256-GCM_ENCRYPTED</p>
+                    {/* Labels: Roboto Condensed */}
+                    <p className="text-[10px] font-black uppercase tracking-[0.1em] text-green-400 font-roboto-condensed">Shield_Active</p>
+                    {/* Detail: JetBrains Mono */}
+                    <p className="text-[8px] font-jetbrains text-green-500/40 uppercase">AES-256-GCM_ENCRYPTED</p>
                   </div>
               </div>
             </motion.div>
             
             {/* NEURAL HEALTH WIDGET */}
             <div className="p-8 bg-white/[0.02] border border-white/5 rounded-[2.5rem] flex items-center justify-between shadow-xl backdrop-blur-md">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 italic">Neural_Link</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 font-roboto-condensed">Neural_Link</span>
               <div className="flex items-end gap-1.5 h-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <motion.div

@@ -46,7 +46,7 @@ const MiniAreaChart = ({
   `;
 
   return (
-    <div className="flex flex-col items-center gap-1 group">
+    <div className="flex flex-col items-center gap-1 group font-inter">
       <svg 
         width={width} 
         height={height} 
@@ -83,8 +83,8 @@ const MiniAreaChart = ({
         </defs>
       </svg>
       
-      {/* Mobile-friendly percentage label (Optional, visible on hover/active) */}
-      <span className="hidden group-hover:block absolute -top-4 text-[8px] font-black font-mono text-white bg-black/80 px-1 rounded border border-white/10">
+      {/* Mobile-friendly percentage label - JetBrains Mono */}
+      <span className="hidden group-hover:block absolute -top-4 text-[8px] font-black font-jetbrains text-white bg-black/80 px-1 rounded border border-white/10 tabular-nums">
         {latest}%
       </span>
     </div>

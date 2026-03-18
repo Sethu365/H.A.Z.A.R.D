@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -139,7 +139,7 @@ const FileExplorer = ({ setLoading, setError }) => {
   useEffect(() => { fetchDirectory("/", true); }, [fetchDirectory]);
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white font-['Nunito']">
+    <div className="min-h-screen bg-[#020617] text-white font-inter">
       <Topbar name="Filesystem" desc={`Remote_Explorer :: ${hostname}`} />
 
       <main className="pt-24 pb-20 px-4 md:px-8 max-w-7xl mx-auto flex flex-col gap-6 h-[calc(100vh-20px)] lg:h-screen">
@@ -149,7 +149,7 @@ const FileExplorer = ({ setLoading, setError }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <HardDrive className="text-cyan-500 animate-pulse" size={20} />
-              <h3 className="text-xs md:text-sm font-black uppercase tracking-[0.3em] italic">Node_Stream</h3>
+              <h3 className="font-roboto-condensed text-xs md:text-sm font-black uppercase tracking-[0.3em]">Node_Stream</h3>
             </div>
             <button 
               onClick={() => fetchDirectory(currentPath)} 
@@ -165,7 +165,7 @@ const FileExplorer = ({ setLoading, setError }) => {
               value={currentPath}
               onChange={(e) => setCurrentPath(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && fetchDirectory(currentPath)}
-              className="bg-transparent border-none outline-none text-cyan-400 text-xs md:text-sm w-full font-mono uppercase font-bold tracking-widest"
+              className="font-jetbrains bg-transparent border-none outline-none text-cyan-400 text-xs md:text-sm w-full font-bold uppercase tracking-widest"
             />
           </div>
         </div>
@@ -175,7 +175,7 @@ const FileExplorer = ({ setLoading, setError }) => {
           <div className="overflow-x-auto cyber-scroll flex-1">
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-[#0a0c14] z-20 shadow-xl">
-                <tr className="text-[10px] font-black uppercase text-gray-500 tracking-[0.2em] border-b border-white/5">
+                <tr className="font-roboto-condensed text-[10px] font-black uppercase text-gray-500 tracking-[0.2em] border-b border-white/5">
                   <th className="px-8 py-5">Asset_Identity</th>
                   <th className="px-6 py-5 hidden sm:table-cell">Size_Buffer</th>
                   <th className="px-6 py-5 text-right">Action</th>
@@ -197,17 +197,17 @@ const FileExplorer = ({ setLoading, setError }) => {
                              <div className="p-2 bg-white/5 rounded-lg text-gray-500"><File size={18} /></div>
                           )}
                           <div className="min-w-0">
-                            <p className={`text-sm font-extrabold truncate italic uppercase tracking-tight ${isDir ? 'text-white' : 'text-gray-300'}`}>
+                            <p className={`font-inter text-sm font-extrabold truncate uppercase tracking-tight ${isDir ? 'text-white' : 'text-gray-300'}`}>
                               {item.name}
                             </p>
-                            <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest sm:hidden">
+                            <p className="font-roboto-condensed text-[8px] font-black text-gray-600 uppercase tracking-widest sm:hidden">
                                 {formatSize(item.size)} // {item.type}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 hidden sm:table-cell">
-                        <span className="text-[10px] font-mono font-bold text-gray-500 italic uppercase">
+                        <span className="font-jetbrains text-[10px] font-bold text-gray-500 uppercase">
                           {item.type} // {formatSize(item.size)}
                         </span>
                       </td>
@@ -227,7 +227,7 @@ const FileExplorer = ({ setLoading, setError }) => {
         </div>
       </main>
 
-      {/* INSPECTION MODAL (RESPONSIVE) */}
+      {/* INSPECTION MODAL */}
       <AnimatePresence>
         {inspecting && (
           <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center p-0 lg:p-8 bg-black/80 backdrop-blur-md">
@@ -242,8 +242,8 @@ const FileExplorer = ({ setLoading, setError }) => {
                     <Binary size={24} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-white font-black text-xl italic uppercase tracking-tighter truncate md:w-96">{selectedFile?.name}</h2>
-                    <p className="text-[9px] text-gray-500 font-mono font-bold uppercase tracking-widest truncate">{selectedFile?.path}</p>
+                    <h2 className="font-inter text-white font-black text-xl uppercase tracking-tighter truncate md:w-96">{selectedFile?.name}</h2>
+                    <p className="font-jetbrains text-[9px] text-gray-500 font-bold uppercase tracking-widest truncate">{selectedFile?.path}</p>
                   </div>
                 </div>
                 <button onClick={() => setInspecting(false)} className="p-3 bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-500 rounded-full transition-all active:scale-90">
@@ -253,25 +253,25 @@ const FileExplorer = ({ setLoading, setError }) => {
 
               <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 cyber-scroll">
                 <div className="bg-black/60 rounded-[2rem] border border-white/5 shadow-2xl overflow-hidden relative">
-                  <div className="flex items-center justify-between bg-white/[0.02] px-6 py-4 border-b border-white/5">
+                  <div className="flex items-center justify-between bg-white/[0.02] px-6 py-4 border-b border-white/5 font-roboto-condensed">
                     <div className="flex items-center gap-2 text-gray-500 text-[9px] font-extrabold uppercase tracking-widest">
                       <Terminal size={12} /> Buffer_Readout
                     </div>
                     <span className="text-[9px] font-bold text-cyan-500/60 uppercase">Vol: {formatSize(selectedFile?.size)}</span>
                   </div>
                   <div className="p-6 md:p-8">
-                     <pre className="text-xs md:text-sm text-gray-400 font-mono leading-relaxed whitespace-pre-wrap selection:bg-cyan-500/40">
+                     <pre className="font-jetbrains text-xs md:text-sm text-gray-400 leading-relaxed whitespace-pre-wrap selection:bg-cyan-500/40">
                        {fileContent}
                      </pre>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-roboto-condensed">
                    <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center gap-4">
                       <div className="p-3 bg-white/5 rounded-xl text-cyan-500"><Info size={20} /></div>
                       <div>
                         <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Protocol</p>
-                        <p className="text-xs text-gray-200 font-extrabold uppercase italic">A.U.R.O.R.A Secure Stream</p>
+                        <p className="font-inter text-xs text-gray-200 font-extrabold uppercase">A.U.R.O.R.A Secure Stream</p>
                       </div>
                    </div>
                    <button 
