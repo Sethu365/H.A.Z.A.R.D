@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Assume these are custom components in your project
 import TimelineAreaChart from "../components/TimelineAreaChart";
 import Gauge from "../components/Gauge";
 import Topbar from "../components/Topbar";
@@ -31,7 +30,7 @@ const Dashboard = () => {
   const [timescaleStats, setTimescaleStats] = useState({ total_table_size: "0 MB", total_rows_logs: 0 });
   const [dockerHealth, setDockerHealth] = useState({ docker_daemon: "unknown", containers_running: 0 });
   const [uptime, setUptime] = useState("0m");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Initial load only
   const [isError, setIsError] = useState(false);
 
   const timerRef = useRef(null);
@@ -60,7 +59,9 @@ const Dashboard = () => {
         setTimescaleStats(timescaleData);
         setDockerHealth(dockerData);
         setUptime(uptimeData.formatted ?? "0m");
-        setLoading(false);
+        
+        // Critical: Only turn off loading once. Subsequent updates won't trigger the splash.
+        setLoading(false); 
         setIsError(false);
       } catch (err) {
         console.error("Polling Error:", err);
@@ -84,7 +85,6 @@ const Dashboard = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-cyan-400 bg-[#020617] animate-pulse">
         <Activity className="w-12 h-12 mb-4" />
-        {/* Labels: Roboto Condensed */}
         <span className="font-roboto-condensed text-[10px] font-black uppercase tracking-[0.4em]">Establishing_Link</span>
       </div>
     );
@@ -107,11 +107,9 @@ const Dashboard = () => {
 
   /* ---------------- UI SUB-COMPONENTS ---------------- */
   const StatCard = ({ icon: Icon, title, value, color }) => (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-xl transition-all hover:bg-white/[0.08]">
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-xl hover:bg-white/[0.08] transition-colors">
       <div className="min-w-0">
-        {/* Labels: Roboto Condensed */}
         <p className="font-roboto-condensed text-[9px] font-black uppercase text-gray-500 tracking-wider mb-1 truncate">{title}</p>
-        {/* Values: JetBrains Mono */}
         <p className={`font-jetbrains text-xl font-bold truncate ${color}`}>{value}</p>
       </div>
       <Icon className={`w-6 h-6 shrink-0 ml-3 ${color} opacity-80`} />
@@ -120,12 +118,10 @@ const Dashboard = () => {
 
   const Section = ({ title, action, children }) => (
     <motion.div 
-      initial={{ opacity: 0, y: 10 }} 
-      animate={{ opacity: 1, y: 0 }}
+      layout // Prevents "blinking" by animating layout changes smoothly
       className="bg-white/[0.02] border border-white/5 rounded-3xl p-4 md:p-6 space-y-4 backdrop-blur-sm shadow-2xl"
     >
       <div className="flex items-center justify-between">
-        {/* Headers: Roboto Condensed (Removed italic) */}
         <h3 className="font-roboto-condensed text-xs md:text-sm font-black uppercase text-gray-300 tracking-[0.2em]">{title}</h3>
         {action}
       </div>
@@ -134,13 +130,11 @@ const Dashboard = () => {
   );
 
   return (
-    // Main Container: Inter
     <div className="min-h-screen bg-[#020617] font-inter text-slate-200">
       <Topbar name="Dashboard" desc="Infrastructure_Operational_Link" />
 
       <main className="pt-24 pb-20 px-4 md:px-8 space-y-6 max-w-7xl mx-auto overflow-x-hidden">
         
-        {/* CONNECTION ALERT - JetBrains Mono for System Logs */}
         <AnimatePresence>
           {isError && (
             <motion.div 
@@ -155,11 +149,9 @@ const Dashboard = () => {
           )}
         </AnimatePresence>
 
-        {/* SYSTEM TIMELINE */}
         <Section
           title="System Realtime Metrics"
           action={
-            // Timestamp/Stats: JetBrains Mono for values
             <div className="flex items-center gap-2 font-jetbrains text-[10px] text-gray-500 uppercase">
               <Clock className="w-3 h-3 text-cyan-400" />
               <span className="font-roboto-condensed">Uptime:</span> <span className="text-white">{uptime}</span>
@@ -171,13 +163,11 @@ const Dashboard = () => {
           </div>
         </Section>
 
-        {/* CPU / MEMORY GAUGES */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8">
           <Gauge label="CPU Utilization" value={latestCpu} />
           <Gauge label="Memory Utilization" value={latestMem} />
         </div>
 
-        {/* DATABASES & DOCKER */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Section
             title="Database Layer"
@@ -213,25 +203,23 @@ const Dashboard = () => {
           </Section>
         </div>
 
-        {/* KAFKA TOPICS TABLE */}
+        {/* KAFKA TOPICS TABLE - Optimized for scanability and size */}
         <Section title="Kafka Message Mesh">
           <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent">
             <table className="w-full text-left">
               <thead>
-                {/* Table Headers: Roboto Condensed */}
-                <tr className="border-b border-white/10 font-roboto-condensed text-[9px] font-black uppercase text-gray-500 tracking-[0.2em]">
-                  <th className="py-3 px-2">Stream_Topic</th>
-                  <th className="py-3 px-2 text-right">Partitions</th>
-                  <th className="py-3 px-2 text-right">Ingest_Rate (ms/s)</th>
+                <tr className="border-b border-white/10 font-roboto-condensed text-[11px] font-black uppercase text-gray-500 tracking-[0.2em]">
+                  <th className="py-4 px-2">Stream_Topic</th>
+                  <th className="py-4 px-2 text-right">Partitions</th>
+                  <th className="py-4 px-2 text-right">Ingest_Rate (ms/s)</th>
                 </tr>
               </thead>
-              {/* Table Body: JetBrains Mono */}
-              <tbody className="font-jetbrains text-[11px] divide-y divide-white/5">
+              <tbody className="font-jetbrains text-[13px] divide-y divide-white/5">
                 {kafkaTableData.map(row => (
                   <tr key={row.topic} className="group hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 px-2 text-cyan-400 font-bold truncate max-w-[120px] md:max-w-none">{row.topic}</td>
-                    <td className="py-3 px-2 text-right text-gray-400">{row.partitions}</td>
-                    <td className="py-3 px-2 text-right text-white tracking-tighter">
+                    <td className="py-5 px-2 text-cyan-400 font-bold truncate max-w-[120px] md:max-w-none">{row.topic}</td>
+                    <td className="py-5 px-2 text-right text-gray-400">{row.partitions}</td>
+                    <td className="py-5 px-2 text-right text-white tracking-tighter">
                       {row.rate.toFixed(2)}
                     </td>
                   </tr>

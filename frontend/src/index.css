@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+@layer utilities {
+  /* Tactical Scrollbar Utility */
+  .cyber-scroll::-webkit-scrollbar {
+    width: 5px; /* Slim for a HUD look */
+    height: 5px;
+  }
+
+  .cyber-scroll::-webkit-scrollbar-track {
+    background: transparent; /* Seamless blend with #020617 */
+  }
+
+  .cyber-scroll::-webkit-scrollbar-thumb {
+    /* Glass effect thumb */
+    background: rgba(255, 255, 255, 0.05); 
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+    transition: all 0.3s ease;
+  }
+
+  .cyber-scroll::-webkit-scrollbar-thumb:hover {
+    /* High-intensity neon glow on interaction */
+    background: linear-gradient(to bottom, #06b6d4, #8b5cf6);
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+  }
+
+  /* Firefox Support */
+  .cyber-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  }
+}

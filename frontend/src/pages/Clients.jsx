@@ -2,10 +2,12 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Gauge from "../components/Gauge";
 import { useNavigate } from "react-router-dom";
-import { Plus, Monitor, Terminal, Download, ChevronDown, Radio, ChevronRight, AlertCircle } from "lucide-react";
+import { Plus, Monitor, Terminal, Download, ChevronDown, Radio, ChevronRight } from "lucide-react";
 import Topbar from "../components/Topbar";
 
-const BASE_URL = "http://172.24.16.81:8001/client";
+// Ensure this matches your FastAPI server address
+const API_BASE = "http://172.24.16.81:8001"; 
+const BASE_URL = `${API_BASE}/client`;
 const POLL_INTERVAL_MS = 1500;
 
 const Clients = ({ setLoading, setError }) => {
@@ -24,8 +26,11 @@ const Clients = ({ setLoading, setError }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // --- UPDATED DOWNLOAD HANDLER ---
   const handleDownload = (platform) => {
-    console.log(`Downloading agent for: ${platform}`);
+    // Neural link to the FastAPI /download/{platform} route
+    const downloadUrl = `${BASE_URL}/download/${platform}`;
+    window.location.href = downloadUrl;
     setShowAddMenu(false);
   };
 
@@ -96,7 +101,6 @@ const Clients = ({ setLoading, setError }) => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-3">
              <div className="h-3 w-3 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_#06b6d4]" />
-             {/* Labels: Roboto Condensed */}
              <span className="font-roboto-condensed text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">Active_Nodes</span>
           </div>
 
@@ -122,8 +126,7 @@ const Clients = ({ setLoading, setError }) => {
                   <button onClick={() => handleDownload("linux")} className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 rounded-xl transition-all group">
                     <div className="flex items-center gap-3">
                       <Terminal size={16} className="text-cyan-400" /> 
-                      {/* Technical Options: JetBrains Mono */}
-                      <span className="font-jetbrains text-[11px] font-bold text-gray-200">Linux_gRPC</span>
+                      <span className="font-jetbrains text-[11px] font-bold text-gray-200">Linux_gRPC (.deb)</span>
                     </div>
                     <Download size={14} className="text-gray-500 opacity-20 group-hover:opacity-100 transition-opacity" />
                   </button>
@@ -131,7 +134,7 @@ const Clients = ({ setLoading, setError }) => {
                   <button onClick={() => handleDownload("windows")} className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 rounded-xl transition-all group">
                     <div className="flex items-center gap-3">
                       <Monitor size={16} className="text-blue-400" /> 
-                      <span className="font-jetbrains text-[11px] font-bold text-gray-200">Win_Sensor</span>
+                      <span className="font-jetbrains text-[11px] font-bold text-gray-200">Win_Sensor (.exe)</span>
                     </div>
                     <Download size={14} className="text-gray-500 opacity-20 group-hover:opacity-100 transition-opacity" />
                   </button>
@@ -159,14 +162,12 @@ const Clients = ({ setLoading, setError }) => {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
               )}
 
-              {/* CARD HEADER */}
               <div className="mb-8 flex justify-between items-start">
                 <div className="min-w-0">
-                  {/* Headers: Inter (or Roboto Condensed for brand uniformity) */}
                   <h2 className={`font-inter text-2xl font-black tracking-tighter uppercase truncate ${client.isOnline ? 'text-white' : 'text-gray-600'}`}>
                     {client.hostname}
                   </h2>
-                  <p className="font-roboto-condensed text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">Status_Registry</p>
+                  <p className="font-roboto-condensed text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1 text-glow">Status_Registry</p>
                 </div>
 
                 <div className={`font-roboto-condensed flex items-center gap-2 px-3 py-1 rounded-full border-2 text-[8px] font-black uppercase tracking-widest ${
@@ -178,17 +179,14 @@ const Clients = ({ setLoading, setError }) => {
                 </div>
               </div>
 
-              {/* GAUGES */}
               <div className="grid grid-cols-2 gap-4">
                 <Gauge label="Core_Load" value={client.isOnline ? client.cpu : NaN} />
                 <Gauge label="Buffer_Usage" value={client.isOnline ? client.ram : NaN} />
               </div>
 
-              {/* ACTION FOOTER */}
               <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
                 <div className="flex flex-col">
                     <span className="font-roboto-condensed text-[7px] font-black text-gray-600 uppercase tracking-widest mb-1">Last_Pulse</span>
-                    {/* Timestamps: JetBrains Mono */}
                     <p className="font-jetbrains text-[10px] font-bold text-gray-400">
                         {client.isOnline ? new Date(client.timestamp).toLocaleTimeString() : 'TERMINATED'}
                     </p>

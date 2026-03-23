@@ -56,13 +56,15 @@ const Sidebar = () => {
         
         {/* TACTICAL RETURN / EXIT MODULE */}
         <button
-          onClick={() => hostname ? navigate('/clients') : navigate(-1)}
+          // FIX: If hostname is present, always go to main Clients list. 
+          // If not, go back (or default to home if preferred).
+          onClick={() => hostname ? navigate('/clients') : navigate('/')}
           className="group relative flex items-center justify-center group-hover:justify-start gap-4 w-full p-4 mb-8 rounded-2xl bg-white text-[#020617] hover:bg-cyan-400 transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.4)] shrink-0 overflow-hidden"
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <ChevronLeft className="w-6 h-6 shrink-0 group-hover:-translate-x-1 transition-transform" />
           <span className="hidden group-hover:block text-xs font-black tracking-tighter uppercase whitespace-nowrap">
-            {hostname ? "Exit_Node" : "Return_Step"}
+            {hostname ? "Exit_Node" : "Return_Home"}
           </span>
         </button>
 
