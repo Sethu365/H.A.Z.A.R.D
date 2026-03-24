@@ -1,55 +1,52 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Bell, Search, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 
-const Topbar = () => {
+const Topbar = ({ name, desc }) => {
+  const navigate = useNavigate();
+
   return (
-    <motion.div
-      initial={{ y: -20, opacity: 0 }}
+    <motion.header
+      initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="bg-gray-800/50 border-b border-gray-700 p-4"
+      /** * FIX: 
+       * 1. z-30 ensures it sits below the Sidebar (which should be z-50)
+       * 2. lg:left-24 (6rem) matches your desktop sidebar width to prevent overlap
+       */
+      className="fixed top-0 right-0 left-0 lg:left-24 z-30 backdrop-blur-md font-inter"
     >
-      <div className="flex items-center justify-between">
-        {/* Title */}
-        <div>
-          <h2 className="text-2xl font-bold text-white">
-            Security Operations Center
-          </h2>
-          <p className="text-gray-400 text-sm">
-            Real-time threat monitoring and anomaly detection
-          </p>
+      <div className="relative bg-[#020617]/70 border-b border-white/5 px-4 md:px-8 py-4 md:py-6 flex items-center gap-4 md:gap-8 justify-between">
+        
+        {/* TOP GLOW LINE */}
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
+
+        {/* LEFT SECTION: BACK BUTTON + IDENTITY */}
+        <div className="flex items-center gap-4 md:gap-8 min-w-0">
+          {/* IDENTITY */}
+          <div className="space-y-0.5 md:space-y-1 min-w-0">
+            <h2 className="text-2xl md:text-5xl font-extrabold text-white tracking-tighter leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] truncate">
+              {name}
+            </h2>
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="h-[1.5px] md:h-[2px] w-4 md:w-6 bg-cyan-500 rounded-full shrink-0" />
+              {/* Description: Roboto Condensed */}
+              <p className="font-roboto-condensed text-[9px] md:text-[11px] font-medium text-gray-400 tracking-wide truncate max-w-[150px] md:max-w-none uppercase">
+                {desc || "Neural link active // System monitoring"}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center space-x-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search threats..."
-              className="bg-gray-700 text-white pl-10 pr-4 py-2 rounded-xl border border-gray-600 focus:border-cyan-400 focus:outline-none transition-colors"
-            />
-          </div>
-
-          {/* Notifications */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative p-2 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors"
-          >
-            <Bell className="w-5 h-5 text-gray-300" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-          </motion.button>
-
-          {/* User Info */}
-          <div className="flex items-center space-x-2 bg-gray-700 px-3 py-2 rounded-xl">
-            <User className="w-5 h-5 text-gray-300" />
-            <span className="text-sm text-gray-300">System Monitor</span>
+        {/* RIGHT SECTION: TELEMETRY STATUS */}
+        <div className="flex items-center shrink-0">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/5 border border-white/10 font-roboto-condensed">
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+            <span className="text-[10px] font-bold text-cyan-400/80 uppercase tracking-widest">Live_Telemetry</span>
           </div>
         </div>
       </div>
-    </motion.div>
+    </motion.header>
   );
 };
 

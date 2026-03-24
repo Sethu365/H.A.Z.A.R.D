@@ -1,130 +1,234 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import RiskGauge from "../components/RiskGauge";
-import TimelineChart from "../components/TimelineChart";
-import AlertsTable from "../components/AlertsTable";
-import { Shield, AlertTriangle, Activity } from "lucide-react";
-import { getSystemStats, getAnomalies, getRecentAlerts, getPrediction } from "../api";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Activity,
+  Server,
+  Database,
+  Clock,
+  Settings,
+  AlertCircle,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+import TimelineAreaChart from "../components/TimelineAreaChart";
+import Gauge from "../components/Gauge";
+import Topbar from "../components/Topbar";
+
+const API_BASE = "http://172.24.16.81:8001";
+const POLL_INTERVAL_MS = 1000;
+
+const safeGet = (url, fallback) =>
+  axios.get(url).then(r => r.data).catch(() => fallback);
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
-    cpuUsage: 0,
-    memoryUsage: 0,
-    networkTraffic: 0,
-    riskScore: 0,
-    prediction: 0,
-    xgbProba: 0,
-    reconstructionError: 0,
-    totalAlerts: 0,
-  });
+  const navigate = useNavigate();
+  const [cpuHistory, setCpuHistory] = useState([]);
+  const [memHistory, setMemHistory] = useState([]);
+  const [kafkaTopics, setKafkaTopics] = useState({});
+  const [kafkaRates, setKafkaRates] = useState({});
+  const [timescaleStats, setTimescaleStats] = useState({ total_table_size: "0 MB", total_rows_logs: 0 });
+  const [dockerHealth, setDockerHealth] = useState({ docker_daemon: "unknown", containers_running: 0 });
+  const [uptime, setUptime] = useState("0m");
+  const [loading, setLoading] = useState(true); // Initial load only
+  const [isError, setIsError] = useState(false);
 
-  const [metricsHistory, setMetricsHistory] = useState([]);
-  const [anomalies, setAnomalies] = useState([]);
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const timerRef = useRef(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadData = async () => {
       try {
-        const [metricsRes, anomaliesRes, alertsRes, historyRes, predictionRes] = await Promise.all([
-          getSystemStats(),
-          getAnomalies(),
-          getRecentAlerts(),
-          axios.get("http://localhost:4000/api/metrics/history").catch(() => ({ data: [] })), // safe fallback
-          getPrediction(),
+        const [cpuData, memData, topicsData, ratesData, timescaleData, dockerData, uptimeData] = await Promise.all([
+          safeGet(`${API_BASE}/system/cpu/timeseries`, []),
+          safeGet(`${API_BASE}/system/memory/timeseries`, []),
+          safeGet(`${API_BASE}/kafka/topics`, {}),
+          safeGet(`${API_BASE}/kafka/topic-rates`, {}),
+          safeGet(`${API_BASE}/timescale/health`, { total_table_size: "0 MB", total_rows_logs: 0 }),
+          safeGet(`${API_BASE}/docker/health`, { docker_daemon: "down", containers_running: 0 }),
+          safeGet(`${API_BASE}/system/uptime`, { formatted: "0m" })
         ]);
 
-        setStats({
-          cpuUsage: Number(metricsRes.cpuUsage) || 0,
-          memoryUsage: Number(metricsRes.memoryUsage) || 0,
-          networkTraffic: Number(metricsRes.networkTraffic) || 0,
-          riskScore: predictionRes?.risk_score || 0,
-          prediction: predictionRes?.prediction || 0,
-          xgbProba: predictionRes?.xgb_proba || 0,
-          reconstructionError: predictionRes?.reconstruction_error || 0,
-          totalAlerts: alertsRes?.length || 0,
-        });
+        if (!isMounted) return;
 
-        setMetricsHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
-        setAnomalies(Array.isArray(anomaliesRes) ? anomaliesRes : []);
-        setAlerts(Array.isArray(alertsRes) ? alertsRes : []);
+        setCpuHistory(cpuData);
+        setMemHistory(memData);
+        setKafkaTopics(topicsData);
+        setKafkaRates(ratesData);
+        setTimescaleStats(timescaleData);
+        setDockerHealth(dockerData);
+        setUptime(uptimeData.formatted ?? "0m");
+        
+        // Critical: Only turn off loading once. Subsequent updates won't trigger the splash.
+        setLoading(false); 
+        setIsError(false);
       } catch (err) {
-        console.error("❌ Error loading dashboard data:", err);
+        console.error("Polling Error:", err);
+        if (isMounted) setIsError(true);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          timerRef.current = setTimeout(loadData, POLL_INTERVAL_MS);
+        }
       }
     };
 
     loadData();
-    const interval = setInterval(loadData, 10000); // refresh every 10s
-    return () => clearInterval(interval);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timerRef.current);
+    };
   }, []);
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-cyan-400 bg-[#020617] animate-pulse">
+        <Activity className="w-12 h-12 mb-4" />
+        <span className="font-roboto-condensed text-[10px] font-black uppercase tracking-[0.4em]">Establishing_Link</span>
+      </div>
+    );
+  }
+
+  const latestCpu = cpuHistory.at(-1)?.cpu ?? 0;
+  const latestMem = memHistory.at(-1)?.memory ?? 0;
+
+  const timelineData = cpuHistory.map((c, i) => ({
+    time: new Date(c.ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    cpu: Number(c.cpu.toFixed(2)),
+    memory: Number((memHistory[i]?.memory ?? 0).toFixed(2))
+  }));
+
+  const kafkaTableData = Object.entries(kafkaTopics).map(([topic, meta]) => ({
+    topic,
+    partitions: meta.partitions,
+    rate: kafkaRates[topic]?.messages_per_sec ?? 0
+  }));
+
+  /* ---------------- UI SUB-COMPONENTS ---------------- */
   const StatCard = ({ icon: Icon, title, value, color }) => (
-    <motion.div
-      initial={{ scale: 0.95, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      whileHover={{ scale: 1.02 }}
-      className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700 hover:border-gray-600 transition-all"
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-xl hover:bg-white/[0.08] transition-colors">
+      <div className="min-w-0">
+        <p className="font-roboto-condensed text-[9px] font-black uppercase text-gray-500 tracking-wider mb-1 truncate">{title}</p>
+        <p className={`font-jetbrains text-xl font-bold truncate ${color}`}>{value}</p>
+      </div>
+      <Icon className={`w-6 h-6 shrink-0 ml-3 ${color} opacity-80`} />
+    </div>
+  );
+
+  const Section = ({ title, action, children }) => (
+    <motion.div 
+      layout // Prevents "blinking" by animating layout changes smoothly
+      className="bg-white/[0.02] border border-white/5 rounded-3xl p-4 md:p-6 space-y-4 backdrop-blur-sm shadow-2xl"
     >
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-400 text-sm mb-1">{title}</p>
-          <p className={`text-2xl font-bold ${color}`}>{value}</p>
-        </div>
-        <div
-          className={`p-3 rounded-xl ${color.replace("text-", "bg-").replace("400", "500/20")}`}
-        >
-          <Icon className={`w-6 h-6 ${color}`} />
-        </div>
+        <h3 className="font-roboto-condensed text-xs md:text-sm font-black uppercase text-gray-300 tracking-[0.2em]">{title}</h3>
+        {action}
       </div>
+      {children}
     </motion.div>
   );
 
-  if (loading)
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
-
   return (
-    <div className="space-y-6">
-      <motion.h1 className="text-3xl font-bold text-white">Dashboard Overview</motion.h1>
-      <p className="text-gray-400">Real-time system monitoring with ML anomaly detection</p>
+    <div className="min-h-screen bg-[#020617] font-inter text-slate-200">
+      <Topbar name="Dashboard" desc="Infrastructure_Operational_Link" />
 
-      {/* Stats */}
-      <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <StatCard icon={Activity} title="CPU Usage" value={`${stats.cpuUsage.toFixed(2)}%`} color="text-yellow-400" />
-        <StatCard icon={Shield} title="Memory Usage" value={`${stats.memoryUsage.toFixed(2)}%`} color="text-green-400" />
-        <StatCard icon={Shield} title="Network Traffic" value={`${stats.networkTraffic.toFixed(2)} MB`} color="text-purple-400" />
-        <StatCard icon={AlertTriangle} title="Total Alerts" value={stats.totalAlerts} color="text-red-400" />
-        <StatCard icon={Shield} title="Risk Score" value={stats.riskScore.toFixed(2)} color="text-pink-400" />
-      </motion.div>
-
-      {/* ML Results */}
-      <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700">
-        <h3 className="text-lg font-semibold text-white mb-4">ML Prediction</h3>
-        <p className="text-gray-300">
-          Status:{" "}
-          {stats.prediction === 0 ? (
-            <span className="text-green-400 font-semibold">✅ Normal</span>
-          ) : (
-            <span className="text-red-400 font-semibold">⚠️ Anomaly</span>
+      <main className="pt-24 pb-20 px-4 md:px-8 space-y-6 max-w-7xl mx-auto overflow-x-hidden">
+        
+        <AnimatePresence>
+          {isError && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }} 
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl flex items-center gap-3 font-jetbrains text-xs"
+            >
+              <AlertCircle size={16} />
+              <span>LINK_INTERRUPTED: Retrying connection to API_BASE...</span>
+            </motion.div>
           )}
-        </p>
-        <p className="text-gray-300">XGB Probability: {(stats.xgbProba * 100).toFixed(2)}%</p>
-        <p className="text-gray-300">Reconstruction Error: {stats.reconstructionError.toFixed(2)}</p>
-      </div>
+        </AnimatePresence>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <RiskGauge score={stats.riskScore} />
-        </div>
-        <div className="lg:col-span-2">
-          <TimelineChart data={metricsHistory} />
-        </div>
-      </div>
+        <Section
+          title="System Realtime Metrics"
+          action={
+            <div className="flex items-center gap-2 font-jetbrains text-[10px] text-gray-500 uppercase">
+              <Clock className="w-3 h-3 text-cyan-400" />
+              <span className="font-roboto-condensed">Uptime:</span> <span className="text-white">{uptime}</span>
+            </div>
+          }
+        >
+          <div className="h-[200px] md:h-[300px] w-full">
+            <TimelineAreaChart data={timelineData} />
+          </div>
+        </Section>
 
-      <AlertsTable alerts={alerts} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8">
+          <Gauge label="CPU Utilization" value={latestCpu} />
+          <Gauge label="Memory Utilization" value={latestMem} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Section
+            title="Database Layer"
+            action={
+              <button onClick={() => navigate("/timescale-logs")} className="hover:text-cyan-400 text-gray-600 transition-colors">
+                <Settings size={14} />
+              </button>
+            }
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <StatCard icon={Database} title="TDB Total Rows" value={timescaleStats.total_rows_logs.toLocaleString()} color="text-emerald-400" />
+              <StatCard icon={Database} title="TDB Total Size" value={timescaleStats.total_table_size} color="text-emerald-300" />
+            </div>
+          </Section>
+
+          <Section
+            title="Docker Runtime"
+            action={
+              <button onClick={() => navigate("/docker-settings")} className="hover:text-cyan-400 text-gray-600 transition-colors">
+                <Settings size={14} />
+              </button>
+            }
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <StatCard
+                icon={Server}
+                title="Daemon Status"
+                value={dockerHealth.docker_daemon}
+                color={dockerHealth.docker_daemon === "running" ? "text-green-400" : "text-red-400"}
+              />
+              <StatCard icon={Activity} title="Running Nodes" value={dockerHealth.containers_running} color="text-cyan-400" />
+            </div>
+          </Section>
+        </div>
+
+        {/* KAFKA TOPICS TABLE - Optimized for scanability and size */}
+        <Section title="Kafka Message Mesh">
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-white/10 font-roboto-condensed text-[11px] font-black uppercase text-gray-500 tracking-[0.2em]">
+                  <th className="py-4 px-2">Stream_Topic</th>
+                  <th className="py-4 px-2 text-right">Partitions</th>
+                  <th className="py-4 px-2 text-right">Ingest_Rate (ms/s)</th>
+                </tr>
+              </thead>
+              <tbody className="font-jetbrains text-[13px] divide-y divide-white/5">
+                {kafkaTableData.map(row => (
+                  <tr key={row.topic} className="group hover:bg-white/[0.02] transition-colors">
+                    <td className="py-5 px-2 text-cyan-400 font-bold truncate max-w-[120px] md:max-w-none">{row.topic}</td>
+                    <td className="py-5 px-2 text-right text-gray-400">{row.partitions}</td>
+                    <td className="py-5 px-2 text-right text-white tracking-tighter">
+                      {row.rate.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      </main>
     </div>
   );
 };

@@ -1,79 +1,114 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
   YAxis,
-  Tooltip,
   CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 
 const TimelineChart = ({ data = [] }) => {
-  // Map DB rows → chart-friendly format
- const chartData = data.map((row) => ({
-  time: row.created_at
-    ? new Date(row.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : "N/A",
-  cpu: parseFloat(row.cpu_usage) || 0,
-  memory: parseFloat(row.memory_usage) || 0,
-  network: parseFloat(row.network_traffic) || 0,
-  risk: parseFloat(row.risk_score) || 0,
-}));
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
 
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="font-roboto-condensed h-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 border border-dashed border-white/5 rounded-2xl">
+        Buffer_Empty // Awaiting_Link
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700">
-      <h3 className="text-lg font-semibold text-white mb-4">
-        System Metrics Over Time
-      </h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-          <XAxis dataKey="time" stroke="#aaa" />
-          <YAxis stroke="#aaa" />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#1f2937",
-              border: "1px solid #374151",
-              color: "#fff",
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="cpu"
-            stroke="#facc15"
-            strokeWidth={2}
-            dot={false}
-            name="CPU %"
-          />
-          <Line
-            type="monotone"
-            dataKey="memory"
-            stroke="#22c55e"
-            strokeWidth={2}
-            dot={false}
-            name="Memory %"
-          />
-          <Line
-            type="monotone"
-            dataKey="network"
-            stroke="#a855f7"
-            strokeWidth={2}
-            dot={false}
-            name="Network MB"
-          />
-          <Line
-            type="monotone"
-            dataKey="risk"
-            stroke="#ec4899"
-            strokeWidth={2}
-            dot={false}
-            name="Risk Score"
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+    <ResponsiveContainer width="100%" height="100%" className="font-inter">
+      <LineChart
+        data={data}
+        margin={{ 
+          top: 10, 
+          right: isMobile ? 5 : 15, 
+          left: isMobile ? -35 : -15, 
+          bottom: 0 
+        }}
+      >
+        <CartesianGrid
+          vertical={false}
+          strokeDasharray="3 3"
+          stroke="rgba(255, 255, 255, 0.03)"
+        />
+
+        <XAxis
+          dataKey="time"
+          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800, fontFamily: 'JetBrains Mono' }}
+          tickLine={false}
+          axisLine={false}
+          minTickGap={isMobile ? 40 : 30}
+          interval="preserveStartEnd"
+        />
+
+        <YAxis
+          domain={[0, 100]}
+          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800, fontFamily: 'JetBrains Mono' }}
+          tickLine={false}
+          axisLine={false}
+          hide={isMobile}
+        />
+
+        <Tooltip
+          cursor={{ stroke: "rgba(6, 182, 212, 0.2)", strokeWidth: 1 }}
+          position={isMobile ? { y: 0 } : undefined}
+          contentStyle={{
+            backgroundColor: "rgba(2, 6, 23, 0.95)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: "12px",
+            backdropFilter: "blur(12px)",
+            fontSize: "10px",
+            color: "#fff",
+            boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)",
+            padding: "8px 12px",
+            fontFamily: 'JetBrains Mono'
+          }}
+          itemStyle={{ padding: "0" }}
+          labelStyle={{
+            color: "#9ca3af",
+            marginBottom: "6px",
+            fontWeight: "900",
+            textTransform: "uppercase",
+            letterSpacing: "0.15em",
+            fontSize: "8px",
+            fontFamily: 'Roboto Condensed'
+          }}
+        />
+
+        <Line
+          type="monotone"
+          dataKey="cpu"
+          name="CPU_Load"
+          stroke="#06b6d4" 
+          strokeWidth={isMobile ? 1.5 : 2.5}
+          dot={false}
+          isAnimationActive={false} 
+          style={{ filter: "drop-shadow(0px 0px 8px rgba(6, 182, 212, 0.6))" }}
+        />
+
+        <Line
+          type="monotone"
+          dataKey="memory"
+          name="MEM_Usage"
+          stroke="#a855f7" 
+          strokeWidth={isMobile ? 1.5 : 2.5}
+          dot={false}
+          isAnimationActive={false}
+          style={{ filter: "drop-shadow(0px 0px 8px rgba(168, 85, 247, 0.6))" }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
   );
 };
 
