@@ -5,16 +5,17 @@ import {
   ShieldAlert, Globe, Fingerprint, Database, Search, 
   ChevronRight, ExternalLink, Activity, Info, X, Zap, 
   Terminal, Target, Radar, Cpu, Newspaper,
-  Map as MapIcon, Orbit, BrainCircuit, Loader2, Sparkles, GitMerge, Share2
+  Map as MapIcon, Orbit, BrainCircuit, Loader2, Sparkles, GitMerge, Share2, ListFilter,
+  Crosshair // New icon for direct search
 } from 'lucide-react';
 import Topbar from "../components/Topbar";
 
 const API_BASE = "http://172.24.16.81:8001";
 
 /* -------------------------------------------------------------------------- */
-/* SUB-COMPONENT: FORENSIC VIEW                    */
+/* SUB-COMPONENT: FORENSIC VIEW (EVIDENCE ONLY)                               */
 /* -------------------------------------------------------------------------- */
-const ForensicView = ({ analysisData, hypothesis }) => {
+const ForensicView = ({ analysisData }) => {
   const data = analysisData || {};
   const chain = data.attack_chain || [];
   const techniques = data.techniques || [];
@@ -106,32 +107,25 @@ const ForensicView = ({ analysisData, hypothesis }) => {
            </div>
          ) : <EmptyState message="Entity transition flow not established" />}
       </div>
-
-      {/* 4. AI HYPOTHESIS */}
-      {hypothesis && (
-        <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-[2rem] p-8 shadow-inner relative overflow-hidden">
-           <div className="flex items-center gap-3 mb-6 font-roboto-condensed text-cyan-400">
-              <Activity size={18} />
-              <h3 className="text-[11px] font-black uppercase tracking-[0.4em]">Neural_Link_Analysis</h3>
-           </div>
-           <div className="font-jetbrains text-[14px] leading-relaxed text-gray-300 whitespace-pre-wrap italic">{hypothesis}</div>
-        </div>
-      )}
     </div>
   );
 };
 
 /* -------------------------------------------------------------------------- */
-/* MAIN COMPONENT: INTEL                           */
+/* MAIN COMPONENT: INTEL                                                      */
 /* -------------------------------------------------------------------------- */
 
 const Intel = ({ setLoading, setError }) => {
   const [activeView, setActiveView] = useState("threats");
   const [intelData, setIntelData] = useState({ stats: {}, data: [] });
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedThreat, setSelectedThreat] = useState(null);
   const [analysisData, setAnalysisData] = useState(null);
-  const [hypothesis, setHypothesis] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+
+  // States for Direct ID Acquisition
+  const [showDirectInput, setShowDirectInput] = useState(false);
+  const [directId, setDirectId] = useState("");
 
   const fetchIntel = async (view, isInitial = false) => {
     if (isInitial) { setLoading(true); setError(null); }
@@ -146,29 +140,29 @@ const Intel = ({ setLoading, setError }) => {
   };
 
   const fetchThreatDetail = async (id) => {
+    if (!id) return;
     setDetailsLoading(true);
-    setSelectedThreat(true); 
+    setSelectedThreat({}); // Immediate trigger for UI presence
     setAnalysisData(null);
-    setHypothesis(null);
+    setShowDirectInput(false);
 
     try {
-      const [detailRes, analysisRes, hypoRes] = await Promise.all([
+      const [detailRes, analysisRes] = await Promise.all([
         fetch(`${API_BASE}/intel/threat/${id}`),
-        fetch(`${API_BASE}/intel/threat/${id}/analysis`),
-        fetch(`${API_BASE}/intel/threat/${id}/hypothesis`).catch(() => null)
+        fetch(`${API_BASE}/intel/threat/${id}/analysis`)
       ]);
       
+      if (!detailRes.ok) throw new Error("Threat not found");
+
       const detailResult = await detailRes.json();
       const analysisResult = await analysisRes.json();
-      const hypoResult = hypoRes ? await hypoRes.json() : null;
       
       setSelectedThreat(detailResult);
       setAnalysisData(analysisResult.analysis);
-      if (hypoResult?.status === "generated") {
-        setHypothesis(hypoResult.hypothesis);
-      }
     } catch (err) { 
       console.error("Forensic Retrieval Error:", err); 
+      setSelectedThreat(null);
+      alert(`UPLINK_FAILURE: Threat ID ${id} is not present in active registry.`);
     } finally {
       setDetailsLoading(false);
     }
@@ -176,18 +170,88 @@ const Intel = ({ setLoading, setError }) => {
 
   useEffect(() => { fetchIntel(activeView, true); }, [activeView]);
 
+  const filteredData = intelData.data.filter((item) => {
+    const searchStr = searchTerm.toLowerCase();
+    return (
+      (item.title?.toLowerCase().includes(searchStr)) ||
+      (item.cve_id?.toLowerCase().includes(searchStr)) ||
+      (item.ip?.toLowerCase().includes(searchStr)) ||
+      (item.domain?.toLowerCase().includes(searchStr))
+    );
+  });
+
+  const handleDirectAcquire = (e) => {
+    e.preventDefault();
+    if (directId.trim()) {
+      fetchThreatDetail(directId.trim());
+      setDirectId("");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#020617] text-white font-inter selection:bg-cyan-500/30">
       <Topbar name="Intel Matrix" desc="OSINT_Threat_Aggregator_Mesh" />
 
       <main className="pt-24 pb-20 px-4 md:px-8 max-w-7xl mx-auto space-y-10 overflow-x-hidden">
-        {/* VIEW SELECTOR */}
+        
+        {/* HEADER: SELECTOR, SEARCH, DIRECT ACQUISITION */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-             <div className="h-3 w-3 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_#06b6d4]" />
-             <span className="font-roboto-condensed text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">Telemetry_Stream</span>
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+             
+             {/* REGULAR SEARCH */}
+             <div className="relative w-full sm:w-64 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                <input 
+                  type="text"
+                  placeholder="FILTER_STREAM..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-[10px] font-jetbrains uppercase tracking-widest text-white outline-none focus:border-cyan-500/50 transition-all"
+                />
+             </div>
+
+             {/* DIRECT ID SEARCH */}
+             <div className="relative flex items-center gap-2">
+                <AnimatePresence mode="wait">
+                  {!showDirectInput ? (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      onClick={() => setShowDirectInput(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-white text-black rounded-xl font-roboto-condensed font-black text-[10px] uppercase tracking-widest hover:bg-cyan-400 transition-all active:scale-95 shadow-lg whitespace-nowrap"
+                    >
+                      <Crosshair size={14} /> Direct_Acquire
+                    </motion.button>
+                  ) : (
+                    <motion.form 
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: "220px", opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      onSubmit={handleDirectAcquire}
+                      className="flex items-center bg-cyan-500/10 border border-cyan-500/30 rounded-xl overflow-hidden"
+                    >
+                      <input 
+                        autoFocus
+                        type="text"
+                        placeholder="ID..."
+                        value={directId}
+                        onChange={(e) => setDirectId(e.target.value)}
+                        className="bg-transparent px-4 py-2.5 text-[10px] font-jetbrains text-cyan-400 outline-none w-full placeholder:text-cyan-900"
+                      />
+                      <button type="submit" className="px-3 text-cyan-400 hover:text-white">
+                        <ChevronRight size={18} />
+                      </button>
+                      <button type="button" onClick={() => setShowDirectInput(false)} className="px-2 text-red-500 opacity-50 hover:opacity-100">
+                        <X size={14} />
+                      </button>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
+             </div>
           </div>
-          <div className="flex bg-white/[0.02] p-1.5 rounded-2xl border border-white/5 backdrop-blur-xl shadow-2xl overflow-x-auto cyber-scroll font-roboto-condensed">
+
+          <div className="flex bg-white/[0.02] p-1.5 rounded-2xl border border-white/5 backdrop-blur-xl">
             {["threats", "cves", "ips", "domains"].map((view) => (
               <button key={view} onClick={() => setActiveView(view)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${activeView === view ? 'text-[#020617]' : 'text-gray-500 hover:text-white'}`}>
                 {activeView === view && <motion.div layoutId="nav-bg" className="absolute inset-0 bg-white" />}
@@ -208,28 +272,24 @@ const Intel = ({ setLoading, setError }) => {
 
         {/* DATA CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 cyber-scroll max-h-[700px] overflow-y-auto pr-2 pb-10">
-          {intelData.data.map((item, i) => (
-            <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
+          {filteredData.map((item, i) => (
+            <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.01 }}
               className="group bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 p-8 rounded-[2.5rem] transition-all relative overflow-hidden backdrop-blur-md shadow-xl cursor-pointer"
               onClick={() => activeView === 'threats' ? fetchThreatDetail(item.id) : null}
             >
                <div className="space-y-6 relative z-10">
                   <div className="flex justify-between items-start">
-                    <div className="p-3 bg-white/5 rounded-2xl border border-white/5 group-hover:bg-white group-hover:text-black transition-all">
-                       <Terminal size={20} />
-                    </div>
+                    <Terminal size={20} className="text-gray-500 group-hover:text-cyan-400 transition-colors" />
                     <div className={`h-2 w-2 rounded-full animate-ping ${getSeverityStyles(item.severity || 'LOW', true)}`} />
                   </div>
                   <div className="min-w-0">
-                      <a href={item.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="block font-jetbrains text-2xl font-black tracking-tighter text-white hover:text-cyan-400 transition-colors uppercase leading-none truncate">
+                      <a href={item.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="block font-jetbrains text-2xl font-black tracking-tighter text-white hover:text-cyan-400 transition-colors uppercase truncate">
                           {item.title || item.cve_id || item.ip || item.domain}
                       </a>
-                      <p className="font-roboto-condensed text-[10px] font-extrabold text-gray-500 uppercase tracking-[0.2em] mt-3">
-                        {item.source || 'GLOBAL_OSINT'}
-                      </p>
+                      <p className="font-roboto-condensed text-[10px] font-extrabold text-gray-500 uppercase tracking-[0.2em] mt-3">{item.source || 'GLOBAL_OSINT'}</p>
+                      <p className="font-jetbrains text-[8px] text-gray-600 mt-1 uppercase">Seq_ID: {item.id}</p>
                   </div>
                   <div className="pt-6 border-t border-white/5 flex justify-between items-center opacity-60">
-                    <span className="font-jetbrains text-[9px] font-bold tracking-widest text-gray-500 uppercase">Seq_ID: {item.id}</span>
                     <ChevronRight size={16} className="text-cyan-400 group-hover:translate-x-1 transition-transform" />
                   </div>
                </div>
@@ -242,48 +302,44 @@ const Intel = ({ setLoading, setError }) => {
           {selectedThreat && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] flex items-end lg:items-center justify-center bg-black/80 backdrop-blur-xl p-0 lg:p-12">
               <div className="absolute inset-0" onClick={() => { setSelectedThreat(null); setAnalysisData(null); }} />
-              
-              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="bg-[#05070a] border-t lg:border border-white/10 w-full max-w-6xl h-[90vh] flex flex-col relative z-[210] rounded-t-[3rem] lg:rounded-[3rem] overflow-hidden font-inter">
-                  <div className="p-6 md:p-10 border-b border-white/5 flex justify-between items-start bg-white/[0.01]">
+              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="bg-[#05070a] border-t lg:border border-white/10 w-full max-w-6xl h-[90vh] flex flex-col relative z-[210] rounded-t-[3rem] lg:rounded-[3rem] overflow-hidden">
+                  <div className="p-6 md:p-10 border-b border-white/5 flex justify-between items-start">
                      <div className="flex items-center gap-6">
-                        <div className={`p-5 rounded-2xl border-2 shadow-2xl relative ${selectedThreat.threat ? getSeverityStyles(selectedThreat.threat.severity) : 'border-white/10 text-gray-500'}`}>
+                        <div className={`p-5 rounded-2xl border-2 ${selectedThreat?.threat ? getSeverityStyles(selectedThreat.threat.severity) : 'border-white/10 animate-pulse'}`}>
                           <Fingerprint size={32} />
                         </div>
-                        <div className="space-y-1 min-w-0">
+                        <div className="space-y-1">
                           <span className="font-roboto-condensed text-[10px] font-black text-cyan-500 uppercase tracking-[0.4em]">Forensic_Investigation</span>
-                          <h2 className="font-inter text-2xl md:text-3xl font-black text-white uppercase tracking-tighter truncate md:w-[600px]">
-                            {selectedThreat.threat?.title || "Retrieving Artifacts..."}
+                          <h2 className="font-inter text-2xl font-black text-white uppercase truncate md:w-[600px] italic">
+                            {selectedThreat?.threat?.title || "Uplink_Acquisition..."}
                           </h2>
                         </div>
                      </div>
-                     <button onClick={() => { setSelectedThreat(null); setAnalysisData(null); }} className="p-3 bg-white/5 hover:bg-red-500/20 rounded-full text-gray-500 hover:text-white transition-all"><X size={24} /></button>
+                     <button onClick={() => { setSelectedThreat(null); setAnalysisData(null); }} className="p-3 bg-white/5 hover:bg-red-500/20 rounded-full transition-all"><X size={24} /></button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-6 md:p-10 cyber-scroll">
+                  <div className="flex-1 overflow-y-auto p-6 md:p-10 cyber-scroll font-inter">
                       {detailsLoading ? (
                         <div className="flex flex-col items-center justify-center h-full py-20 space-y-6">
                            <Orbit size={48} className="text-cyan-500 animate-spin-slow" />
-                           <p className="font-roboto-condensed text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em] animate-pulse">Aggregating_Tactical_Data</p>
+                           <p className="font-roboto-condensed text-[10px] font-black text-cyan-400 uppercase tracking-widest animate-pulse">Aggregating_Telemetry</p>
                         </div>
                       ) : (
                         <div className="space-y-10">
-                          {(analysisData || hypothesis) && (
-                            <ForensicView analysisData={analysisData} hypothesis={hypothesis} />
-                          )}
-
+                          <ForensicView analysisData={analysisData} />
                           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                               <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                  <TacticalBlock title="CVE_Signatures" data={selectedThreat.associations?.cves} field="cve_id" color="orange" icon={<Activity size={16}/>} type="cve" />
-                                  <TacticalBlock title="Host_Artifacts" data={selectedThreat.associations?.ips} field="ip" color="red" icon={<Globe size={16}/>} type="ip" />
+                                  <TacticalBlock title="CVE_Signatures" data={selectedThreat?.associations?.cves} field="cve_id" icon={<Activity size={16}/>} type="cve" />
+                                  <TacticalBlock title="Host_Artifacts" data={selectedThreat?.associations?.ips} field="ip" icon={<Globe size={16}/>} type="ip" />
                               </div>
                               <div className="lg:col-span-5">
-                                  <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-inner relative overflow-hidden h-full">
+                                  <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 space-y-6 shadow-inner relative h-full">
                                       <div className="flex items-center gap-3 border-b border-white/5 pb-4">
                                           <Radar size={18} className="text-cyan-400" />
                                           <h3 className="font-roboto-condensed text-[11px] font-black uppercase text-gray-300 tracking-[0.3em]">Infrastructure_Map</h3>
                                       </div>
                                       <div className="space-y-3 max-h-[400px] overflow-y-auto cyber-scroll pr-3">
-                                          {selectedThreat.associations?.domains && selectedThreat.associations.domains.length > 0 ? (
+                                          {selectedThreat?.associations?.domains && selectedThreat.associations.domains.length > 0 ? (
                                             selectedThreat.associations.domains.map((d, i) => (
                                               <motion.a key={i} href={`https://www.virustotal.com/gui/domain/${d.domain}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-5 bg-black/40 border border-white/5 rounded-2xl hover:border-cyan-500/30 transition-all group">
                                                   <span className="text-xs font-jetbrains text-gray-400 group-hover:text-white font-bold uppercase">{d.domain}</span>
@@ -313,7 +369,7 @@ const Intel = ({ setLoading, setError }) => {
 };
 
 /* -------------------------------------------------------------------------- */
-/* HUD HELPER COMPONENTS                           */
+/* HUD HELPER COMPONENTS                                                      */
 /* -------------------------------------------------------------------------- */
 
 const StatTile = ({ label, value, color, glow }) => (
@@ -328,7 +384,7 @@ const StatTile = ({ label, value, color, glow }) => (
   </div>
 );
 
-const TacticalBlock = ({ title, data, field, color, icon, type }) => {
+const TacticalBlock = ({ title, data, field, icon, type }) => {
   const getOSINT = (val) => type === 'cve' ? `https://nvd.nist.gov/vuln/detail/${val}` : `https://www.virustotal.com/gui/ip-address/${val}`;
   return (
     <div className="space-y-6">
@@ -357,7 +413,7 @@ const TacticalBlock = ({ title, data, field, color, icon, type }) => {
 
 const getSeverityStyles = (sev, isPing = false) => {
   const s = String(sev || 'LOW').toUpperCase();
-  if (s === "CRITICAL" || s === "1") return isPing ? 'bg-red-500 shadow-[0_0_15px_red]' : 'text-red-400 border-red-500/40 bg-red-500/5 shadow-[0_0_50px_rgba(239,68,68,0.2)]';
+  if (s === "CRITICAL" || s === "1") return isPing ? 'bg-red-500 shadow-[0_0_15px_red]' : 'text-red-400 border-red-500/40 bg-red-500/5 shadow-2xl';
   if (s === "HIGH") return isPing ? 'bg-orange-500' : 'text-orange-400 border-orange-500/30 bg-orange-500/5';
   if (s === "MEDIUM") return isPing ? 'bg-yellow-500' : 'text-yellow-400 border-yellow-500/30 bg-yellow-500/5';
   return isPing ? 'bg-cyan-500 shadow-[0_0_10px_cyan]' : 'text-cyan-400 border-cyan-500/30 bg-cyan-500/5';
