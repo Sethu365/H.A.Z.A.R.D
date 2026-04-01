@@ -162,7 +162,7 @@ const ClientCommandExecution = ({ setLoading, setError }) => {
                       <TacticalButton label="Processes" icon={<Hash size={16}/>} onClick={() => handleCommand('list_processes')} active={isOnline} />
                       <TacticalButton label="Top_Load" icon={<Cpu size={16}/>} onClick={() => handleCommand('top_processes')} active={isOnline} />
                       <TacticalButton label="Kill_PID" icon={<XOctagon size={16}/>} onClick={() => handleCommand('kill_process')} active={isOnline} color="text-red-500" border="border-red-500/20" />
-                      <TacticalButton label="Open_Ports" icon={<Globe size={16}/>} onClick={() => handleCommand('open_ports')} active={isOnline} />
+                      {/* <TacticalButton label="Open_Ports" icon={<Globe size={16}/>} onClick={() => handleCommand('open_ports')} active={isOnline} /> */}
                   </div>
               </div>
 

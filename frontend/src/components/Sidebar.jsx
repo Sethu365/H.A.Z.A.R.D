@@ -5,6 +5,7 @@ import eyeLogo from "../assets/eye.png";
 import {
   Users, AlertTriangle, Settings, Activity, Info,
   Terminal, GitBranch, FolderOpen, ChevronLeft, Command, OctagonAlert,
+  Cpu, ShieldCheck, Zap
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -33,73 +34,107 @@ const Sidebar = () => {
 
   return (
     <motion.aside
-      initial={{ x: -100, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      className="fixed left-0 top-0 h-screen w-24 hover:w-64 group transition-all duration-500 ease-in-out bg-[#020617] border-r border-cyan-500/10 flex flex-col z-50 overflow-hidden font-inter"
+      initial={{ x: -100 }}
+      animate={{ x: 0 }}
+      className="fixed left-0 top-0 h-screen w-20 hover:w-64 group transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] bg-[#020617] border-r border-white/5 flex flex-col z-[100] overflow-hidden"
     >
-      {/* GLOW OVERLAY */}
-      <div className="absolute top-0 -left-20 w-40 h-full bg-cyan-500/5 blur-[100px] pointer-events-none" />
+      {/* VERTICAL ACCENT LINE */}
+      <div className="absolute right-0 top-0 h-full w-[1px] bg-gradient-to-b from-transparent via-cyan-500/20 to-transparent" />
 
-      {/* LOGO SECTION */}
-      <div className="flex flex-col items-center py-8 border-b border-white/5">
-        <div className="relative">
-          <img src={eyeLogo} alt="AURORA" className="w-12 h-12 object-contain filter drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
-          <div className="absolute -inset-2 bg-cyan-500/10 blur-lg rounded-full animate-pulse" />
+      {/* LOGO SECTION - SKELETAL DESIGN */}
+      <div className="flex flex-col items-center py-10 relative">
+        <div 
+          className="relative cursor-pointer group/logo"
+          onClick={() => navigate('/')}
+        >
+          <img 
+            src={eyeLogo} 
+            alt="AURORA" 
+            className="w-10 h-10 object-contain filter brightness-125 group-hover/logo:scale-110 transition-transform duration-500" 
+          />
+          <div className="absolute -inset-4 bg-cyan-500/5 blur-2xl rounded-full group-hover/logo:bg-cyan-500/20 transition-all" />
         </div>
-        <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden">
-          <h1 className="font-roboto-condensed text-sm font-black tracking-[0.3em] text-white uppercase">A.U.R.O.R.A</h1>
+        <div className="mt-6 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
+          <h1 className="font-roboto-condensed text-[10px] font-black tracking-[0.8em] text-cyan-500 uppercase italic">
+            AURORA
+          </h1>
         </div>
       </div>
 
-      {/* NAVIGATION */}
-      <nav className="flex-1 px-4 py-8 space-y-4 overflow-y-auto cyber-scroll font-roboto-condensed">
+      {/* NAVIGATION - MODULAR BLOCKS */}
+      <nav className="flex-1 px-3 py-6 space-y-2 cyber-scroll overflow-y-auto overflow-x-hidden">
         
-        {/* TACTICAL RETURN / EXIT MODULE */}
+        {/* RETURN / EXIT MODULE - HIGH CONTRAST */}
         <button
-          // FIX: If hostname is present, always go to main Clients list. 
-          // If not, go back (or default to home if preferred).
           onClick={() => hostname ? navigate('/clients') : navigate('/')}
-          className="group relative flex items-center justify-center group-hover:justify-start gap-4 w-full p-4 mb-8 rounded-2xl bg-white text-[#020617] hover:bg-cyan-400 transition-all duration-300 shadow-[0_10px_20px_rgba(0,0,0,0.4)] shrink-0 overflow-hidden"
+          className="relative flex items-center w-full h-12 mb-10 rounded-xl overflow-hidden group/btn transition-all active:scale-95"
         >
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <ChevronLeft className="w-6 h-6 shrink-0 group-hover:-translate-x-1 transition-transform" />
-          <span className="hidden group-hover:block text-xs font-black tracking-tighter uppercase whitespace-nowrap">
-            {hostname ? "Exit_Node" : "Return_Home"}
-          </span>
+          <div className="absolute inset-0 bg-white group-hover/btn:bg-cyan-400 transition-colors" />
+          <div className="relative flex items-center justify-center group-hover:justify-start gap-4 w-full px-4 text-[#020617]">
+            <ChevronLeft className="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden group-hover:block font-roboto-condensed text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+              {hostname ? "UPLINK_EXIT" : "SYSTEM_HOME"}
+            </span>
+          </div>
         </button>
 
-        {activeNavItems.map(({ path, icon: Icon, label, end }) => (
-          <NavLink
-            key={path}
-            to={path}
-            end={end}
-            className={({ isActive }) => `
-              relative flex items-center justify-center group-hover:justify-start gap-4 p-4 rounded-2xl transition-all duration-300
-              ${isActive 
-                ? "bg-white text-[#020617] shadow-[0_10px_20px_rgba(255,255,255,0.2)]" 
-                : "text-gray-500 hover:text-cyan-400 hover:bg-white/5"
-              }
-            `}
-          >
-            <Icon className="w-6 h-6 shrink-0 transition-transform duration-300 group-active:scale-90" />
-            <span className="hidden group-hover:block text-xs font-black uppercase tracking-widest whitespace-nowrap">
-              {label}
-            </span>
-          </NavLink>
-        ))}
+        <div className="space-y-1">
+          {activeNavItems.map(({ path, icon: Icon, label, end }) => (
+            <NavLink
+              key={path}
+              to={path}
+              end={end}
+              className={({ isActive }) => `
+                relative flex items-center h-14 rounded-xl transition-all duration-300 group/link
+                ${isActive 
+                  ? "bg-white/5 border border-white/10" 
+                  : "hover:bg-white/[0.02] border border-transparent"
+                }
+              `}
+            >
+              {/* ACTIVE INDICATOR LINE */}
+              <NavLink 
+                to={path} 
+                className={({ isActive }) => `absolute left-0 w-1 h-6 rounded-r-full transition-all duration-500 ${isActive ? 'bg-cyan-500' : 'bg-transparent'}`} 
+              />
+              
+              <div className="flex items-center justify-center group-hover:justify-start gap-5 w-full px-5">
+                <Icon className={`w-5 h-5 shrink-0 transition-all duration-500 group-hover/link:text-cyan-400 ${location.pathname === path ? 'text-cyan-400' : 'text-gray-500'}`} />
+                <span className={`hidden group-hover:block font-roboto-condensed text-[11px] font-bold uppercase tracking-[0.2em] whitespace-nowrap transition-colors ${location.pathname === path ? 'text-white' : 'text-gray-500 group-hover/link:text-gray-300'}`}>
+                  {label}
+                </span>
+              </div>
+
+              {/* TACTICAL HOVER GLOW */}
+              <div className="absolute inset-0 bg-cyan-500/0 group-hover/link:bg-cyan-500/[0.03] transition-colors pointer-events-none" />
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
-      {/* FOOTER STATUS */}
-      <div className="p-4 mb-4">
-        <div className="flex flex-col items-center group-hover:items-start p-3 rounded-2xl bg-white/5 border border-white/5 transition-all">
-          <div className="flex items-center gap-2 font-roboto-condensed">
-            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e] animate-pulse" />
-            <span className="hidden group-hover:block text-[10px] font-black uppercase text-green-500 tracking-tighter">System_Active</span>
+      {/* FOOTER STATUS - SYSTEM TELEMETRY LOOK */}
+      <div className="p-3 border-t border-white/5 bg-black/20">
+        <div className="flex flex-col items-center group-hover:items-start p-3 rounded-xl border border-white/5 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <div className="absolute w-4 h-4 rounded-full border border-green-500/50 animate-ping" />
+            </div>
+            <span className="hidden group-hover:block font-roboto-condensed text-[9px] font-black uppercase text-green-500 tracking-[0.2em]">
+              Link_Established
+            </span>
           </div>
-          <div className="hidden group-hover:block mt-2">
-            <p className="font-jetbrains text-[8px] text-gray-500 truncate w-40 uppercase">
-              {hostname ? `Target: ${hostname}` : "Secure_Registry_Linked"}
-            </p>
+          
+          <div className="hidden group-hover:block mt-4 space-y-2 w-full">
+            <div className="flex items-center justify-between text-[8px] font-jetbrains text-gray-600 uppercase">
+              <span>Node_ID</span>
+              <span className="text-gray-400">{hostname ? hostname.slice(0, 8) : "ROOT"}</span>
+            </div>
+            <div className="h-[1px] w-full bg-white/5" />
+            <div className="flex items-center justify-between text-[8px] font-jetbrains text-gray-600 uppercase">
+              <span>Latency</span>
+              <span className="text-cyan-500">12ms</span>
+            </div>
           </div>
         </div>
       </div>
