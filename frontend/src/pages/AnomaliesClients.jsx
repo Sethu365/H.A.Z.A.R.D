@@ -1,315 +1,600 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
-import { 
-  Activity, Terminal, ChevronRight, Search, History, 
-  ShieldAlert, Fingerprint, Zap, Cpu, Clock, X, 
-  Binary, FileCode, AlertCircle, Target, Server, Code
+import {
+  Activity, Terminal, ChevronRight, Search, History,
+  Fingerprint, Zap, Cpu, Clock, X,
+  Binary, FileCode, AlertCircle, Server, Code, Orbit
 } from 'lucide-react';
 
 const API_BASE = "http://172.24.16.81:8001";
+const POLL_INTERVAL = 5000;
+
+// ─── GLASS PRIMITIVES (shared system) ────────────────────────────────────────
+
+const GlassPanel = ({ children, className = "", hover = true }) => (
+  <div className={`relative overflow-hidden rounded-[2rem]
+                   backdrop-blur-[35px] saturate-[2.2]
+                   bg-white/[0.06] dark:bg-black/20
+                   border-t border-l border-white/20
+                   border-r border-b border-white/5
+                   shadow-[0_8px_32px_rgba(0,0,0,0.12),inset_0_0_20px_rgba(255,255,255,0.04),inset_0_0_2px_rgba(255,255,255,0.2)]
+                   ${hover ? "transition-all duration-300 hover:bg-white/[0.09] hover:border-white/25 hover:shadow-[0_12px_40px_rgba(0,0,0,0.18),inset_0_0_25px_rgba(255,255,255,0.06)]" : ""}
+                   ${className}`}>
+    <div className="absolute -top-[120%] -left-[40%] w-[180%] h-[180%]
+                    bg-gradient-to-br from-white/[0.10] via-transparent to-transparent
+                    rotate-12 pointer-events-none" />
+    <div className="absolute bottom-0 left-0 w-full h-[1px]
+                    bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+    <div className="relative z-10">{children}</div>
+  </div>
+);
+
+const GlassInput = ({ icon: Icon, ...props }) => (
+  <div className="relative">
+    {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 w-4 h-4 pointer-events-none" />}
+    <input
+      className={`backdrop-blur-[35px] saturate-[2.2]
+                  bg-white/[0.06] dark:bg-black/20
+                  border-t border-l border-white/20 border-r border-b border-white/5
+                  shadow-[inset_0_0_15px_rgba(255,255,255,0.04),inset_0_0_2px_rgba(255,255,255,0.15)]
+                  rounded-2xl ${Icon ? "pl-11" : "pl-5"} pr-5 py-2.5
+                  text-[11px] font-bold uppercase tracking-widest
+                  text-white placeholder:text-white/25
+                  outline-none
+                  focus:bg-white/[0.10] focus:border-white/30
+                  focus:shadow-[inset_0_0_20px_rgba(255,255,255,0.06),0_0_0_2px_rgba(255,255,255,0.08)]
+                  transition-all duration-200 w-full`}
+      {...props}
+    />
+  </div>
+);
+
+const GlassButton = ({ children, variant = "ghost", className = "", ...props }) => {
+  const base = `flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black text-[11px]
+                uppercase tracking-widest transition-all duration-200 cursor-pointer`;
+  const variants = {
+    ghost: `backdrop-blur-[35px] bg-white/[0.06]
+            border-t border-l border-white/20 border-r border-b border-white/5
+            text-white/70 hover:bg-white/[0.12] hover:text-white
+            shadow-[inset_0_0_15px_rgba(255,255,255,0.04)]`,
+    solid: `bg-white/90 text-slate-900 border border-white/30
+            hover:bg-white
+            shadow-[0_4px_20px_rgba(255,255,255,0.15),inset_0_1px_2px_rgba(255,255,255,0.8)]
+            hover:shadow-[0_4px_28px_rgba(255,255,255,0.25)]`,
+    active: `bg-white/20 text-white border-t border-l border-white/30 border-r border-b border-white/10
+             shadow-[inset_0_0_15px_rgba(255,255,255,0.08)]`,
+  };
+  return (
+    <button className={`${base} ${variants[variant]} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+};
+
+const GlassChip = ({ icon: Icon, children }) => (
+  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl
+                  backdrop-blur-[20px] bg-white/[0.06] border border-white/15
+                  shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)]">
+    {Icon && <Icon size={12} className="text-white/40 shrink-0" />}
+    <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider truncate max-w-[200px]">
+      {children}
+    </span>
+  </div>
+);
+
+// ─── STAT TILE ────────────────────────────────────────────────────────────────
+
+const StatTile = ({ label, value, color }) => {
+  const wash   = color === 'cyan' ? 'from-indigo-500/10 to-transparent' : 'from-red-500/10 to-transparent';
+  const dot    = color === 'cyan'
+    ? 'bg-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.8)]'
+    : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]';
+  const val    = color === 'cyan' ? 'text-white' : 'text-red-400';
+
+  return (
+    <GlassPanel className="p-8">
+      <div className={`absolute inset-0 bg-gradient-to-br ${wash} opacity-60 pointer-events-none z-0`} />
+      <div className="relative z-10">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className={`w-2.5 h-2.5 rounded-full ${dot}`} />
+          <p className="font-black text-[10px] uppercase text-white/50 tracking-[0.35em]">{label}</p>
+        </div>
+        <p className={`text-6xl font-black tracking-tighter ${val}
+                       drop-shadow-[0_0_20px_rgba(255,255,255,0.08)]`}>
+          {value}
+        </p>
+      </div>
+    </GlassPanel>
+  );
+};
+
+// ─── EVENT ROW ────────────────────────────────────────────────────────────────
+
+const EventRow = ({ log, onClick }) => {
+  const isHigh = log.risk_score > 80;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      onClick={onClick}
+      className="group relative overflow-hidden rounded-[2rem] cursor-pointer
+                 backdrop-blur-[35px] saturate-[2.2]
+                 bg-white/[0.05] dark:bg-black/20
+                 border-t border-l border-white/15
+                 border-r border-b border-white/5
+                 shadow-[0_8px_30px_rgba(0,0,0,0.15),inset_0_0_20px_rgba(255,255,255,0.03)]
+                 hover:bg-white/[0.09] hover:border-white/25
+                 hover:shadow-[0_12px_40px_rgba(0,0,0,0.22),inset_0_0_25px_rgba(255,255,255,0.06)]
+                 transition-all duration-300 p-6
+                 flex flex-col md:flex-row items-center justify-between gap-6"
+    >
+      <div className="absolute -top-[120%] -left-[40%] w-[180%] h-[180%]
+                      bg-gradient-to-br from-white/[0.06] via-transparent to-transparent
+                      rotate-12 pointer-events-none" />
+      {isHigh && (
+        <div className="absolute inset-0 bg-gradient-to-r from-red-500/[0.06] to-transparent pointer-events-none" />
+      )}
+      <div className="absolute bottom-0 left-0 w-full h-[1px]
+                      bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      {/* LEFT */}
+      <div className="flex items-center gap-5 flex-1 min-w-0 w-full relative z-10">
+        <div className={`shrink-0 p-4 rounded-2xl border transition-all duration-300
+                         shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]
+                         ${isHigh
+                           ? "border-red-500/30 bg-red-500/10 text-red-400 group-hover:border-red-500/50"
+                           : "border-white/15 bg-white/[0.05] text-white/50 group-hover:border-white/25 group-hover:text-white/80"
+                         }`}>
+          <Fingerprint size={24} className={isHigh ? "drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" : ""} />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h4 className="text-lg font-black text-white uppercase tracking-tight truncate
+                         drop-shadow-[0_1px_6px_rgba(255,255,255,0.1)]">
+            {log.process || 'SYSTEM_CORE'}
+          </h4>
+          <p className="text-xs font-medium text-white/35 truncate italic mt-0.5">
+            "{log.summary || 'Behavioural deviation recorded'}"
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <GlassChip icon={Clock}>{new Date(log.timestamp).toLocaleTimeString()}</GlassChip>
+            {log.process_chain?.length > 0 && (
+              <GlassChip icon={Binary}>{log.process_chain.join(' › ')}</GlassChip>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT */}
+      <div className="flex items-center gap-6 shrink-0 relative z-10">
+        <div className="text-right hidden sm:block">
+          <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-2">
+            Threat_Index
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="w-24 h-1.5 rounded-full overflow-hidden
+                            bg-white/[0.08] border border-white/10
+                            shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)]">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${log.risk_score}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className={`h-full rounded-full
+                            ${isHigh
+                              ? "bg-gradient-to-r from-red-500 to-red-400 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                              : "bg-gradient-to-r from-indigo-400 to-cyan-400 shadow-[0_0_8px_rgba(99,102,241,0.5)]"
+                            }`}
+              />
+            </div>
+            <span className={`text-sm font-black ${isHigh ? "text-red-400" : "text-white/80"}`}>
+              {log.risk_score}%
+            </span>
+          </div>
+        </div>
+        <ChevronRight
+          size={18}
+          className="text-white/20 group-hover:text-white/70 group-hover:translate-x-1 transition-all duration-200"
+        />
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── DETAIL MODAL ─────────────────────────────────────────────────────────────
+
+const DetailModal = ({ log, hostname, onClose }) => {
+  const [showRaw, setShowRaw]         = useState(false);
+  const [ghostFiles, setGhostFiles]   = useState([]);
+  const [ghostLoading, setGhostLoading] = useState(false);
+  const isHigh = log.risk_score > 80;
+
+  useEffect(() => {
+    const fetch_ = async () => {
+      setGhostLoading(true);
+      try {
+        const res    = await fetch(`${API_BASE}/api/fim/${hostname}/${log.timestamp}`);
+        const result = await res.json();
+        setGhostFiles(result.data || []);
+      } catch { /* silent */ }
+      finally { setGhostLoading(false); }
+    };
+    fetch_();
+  }, [log, hostname]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[300] flex items-center justify-center p-4 lg:p-6
+                 bg-black/60 backdrop-blur-xl"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.96, y: 16, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.96, y: 16, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        onClick={e => e.stopPropagation()}
+        className="relative overflow-hidden rounded-[2.5rem] w-full max-w-5xl max-h-[90vh]
+                   flex flex-col
+                   backdrop-blur-[40px] saturate-[2.2]
+                   bg-white/[0.08] dark:bg-black/30
+                   border-t border-l border-white/25
+                   border-r border-b border-white/[0.08]
+                   shadow-[0_40px_80px_rgba(0,0,0,0.5),inset_0_0_40px_rgba(255,255,255,0.05),inset_0_0_2px_rgba(255,255,255,0.3)]"
+      >
+        {/* Modal shine + caustic */}
+        <div className="absolute -top-[120%] -left-[40%] w-[180%] h-[180%]
+                        bg-gradient-to-br from-white/[0.10] via-transparent to-transparent
+                        rotate-12 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-cyan-500/5
+                        opacity-50 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-full h-[1px]
+                        bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+        {/* ── MODAL HEADER ── */}
+        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center
+                        gap-4 p-7 border-b border-white/[0.08]">
+          <div className="flex items-center gap-5">
+            <div className={`shrink-0 p-4 rounded-2xl border
+                             shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]
+                             ${isHigh
+                               ? "border-red-500/30 bg-red-500/10 text-red-400"
+                               : "border-indigo-500/30 bg-indigo-500/10 text-indigo-300"
+                             }`}>
+              <Fingerprint size={28} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-white leading-none">
+                {log.process}
+              </h2>
+              <p className="text-[10px] font-black text-white/35 uppercase tracking-widest mt-1">
+                Node: {hostname} // {log.event_id?.slice(0, 12)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <GlassButton
+              variant={showRaw ? "active" : "ghost"}
+              onClick={() => setShowRaw(!showRaw)}
+            >
+              <Code size={14} />
+              {showRaw ? "Analysis" : "Raw Payload"}
+            </GlassButton>
+            <button
+              onClick={onClose}
+              className="p-2.5 rounded-2xl transition-all duration-200
+                         backdrop-blur-[20px] bg-white/[0.08] border border-white/15
+                         text-white/50 hover:text-white hover:bg-red-500/20 hover:border-red-500/30
+                         shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── MODAL BODY ── */}
+        <div className="relative z-10 p-6 space-y-6 overflow-y-auto flex-1">
+          <AnimatePresence mode="wait">
+            {showRaw ? (
+              <motion.div
+                key="raw"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="rounded-[1.5rem] overflow-hidden
+                            bg-black/40 border border-white/[0.08]
+                            shadow-[inset_0_2px_20px_rgba(0,0,0,0.4)]"
+              >
+                <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.08]">
+                  <div className="w-2 h-2 rounded-full bg-white/25" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/35">
+                    Raw Payload
+                  </span>
+                </div>
+                <pre className="font-mono text-xs leading-relaxed text-white/70
+                                overflow-x-auto p-6 selection:bg-indigo-500/30">
+                  {JSON.stringify(log, null, 2)}
+                </pre>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="analysis"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="space-y-5"
+              >
+                {/* Risk + Process chain row */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                  {/* Risk magnitude */}
+                  <GlassPanel hover={false} className="md:col-span-4 p-7 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      <Activity size={12} className="text-white/35" />
+                      <p className="text-[9px] font-black uppercase text-white/35 tracking-[0.3em]">
+                        Risk Magnitude
+                      </p>
+                    </div>
+                    <span className={`text-6xl font-black tracking-tighter
+                                     ${isHigh ? "text-red-400" : "text-white"}`}>
+                      {log.risk_score}%
+                    </span>
+                    <div className="mt-5 h-1.5 w-full rounded-full overflow-hidden
+                                    bg-white/[0.08] border border-white/10">
+                      <div
+                        className={`h-full rounded-full transition-all
+                                    ${isHigh
+                                      ? "bg-gradient-to-r from-red-500 to-red-400"
+                                      : "bg-gradient-to-r from-indigo-400 to-cyan-400"
+                                    }`}
+                        style={{ width: `${log.risk_score}%` }}
+                      />
+                    </div>
+                  </GlassPanel>
+
+                  {/* Process chain */}
+                  <GlassPanel hover={false} className="md:col-span-8 p-7">
+                    <div className="flex items-center gap-2 mb-5">
+                      <Cpu size={12} className="text-white/35" />
+                      <p className="text-[9px] font-black uppercase text-white/35 tracking-[0.3em]">
+                        Execution Chain Forensics
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4 overflow-x-auto pb-2">
+                      {log.process_chain?.map((proc, idx) => (
+                        <React.Fragment key={idx}>
+                          <div className="flex flex-col items-center gap-2 shrink-0">
+                            <div className={`p-3 rounded-xl border transition-all
+                                            shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)]
+                                            ${idx === log.process_chain.length - 1
+                                              ? "border-indigo-400/40 bg-indigo-500/10 text-indigo-300"
+                                              : "border-white/10 bg-white/[0.05] text-white/40"
+                                            }`}>
+                              <Binary size={16} />
+                            </div>
+                            <span className="text-[9px] font-black uppercase text-white/40 tracking-tight">
+                              {proc}
+                            </span>
+                          </div>
+                          {idx < log.process_chain.length - 1 && (
+                            <ChevronRight size={14} className="text-white/20 shrink-0 mb-4" />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </GlassPanel>
+                </div>
+
+                {/* Ghost scan + Correlated patterns */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                  {/* FIM / ghost scan */}
+                  <div className="md:col-span-7">
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <Zap size={12} className="text-indigo-400" />
+                      <p className="text-[9px] font-black uppercase text-white/35 tracking-[0.3em]">
+                        Ghost Scan // FIM Metrics
+                      </p>
+                    </div>
+                    <GlassPanel hover={false} className="p-5">
+                      <div className="space-y-2.5 max-h-[220px] overflow-y-auto">
+                        {ghostLoading ? (
+                          <p className="text-center font-black uppercase text-[10px]
+                                        text-indigo-300/60 animate-pulse py-8">
+                            Sweeping Neural Buffer...
+                          </p>
+                        ) : ghostFiles.length > 0 ? ghostFiles.map((file, idx) => (
+                          <div key={idx}
+                               className="flex items-center justify-between p-3 rounded-xl
+                                          bg-white/[0.04] border border-white/[0.08]
+                                          hover:bg-white/[0.07] hover:border-white/15
+                                          transition-all duration-200">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <FileCode size={14} className="text-indigo-300/60 shrink-0" />
+                              <div className="truncate">
+                                <p className="text-[11px] font-black text-white/70 truncate uppercase tracking-tight">
+                                  {file.path}
+                                </p>
+                                <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mt-0.5">
+                                  {new Date(file.time).toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                            <AlertCircle size={12} className="text-white/20 shrink-0 ml-2" />
+                          </div>
+                        )) : (
+                          <p className="text-center text-[10px] font-bold uppercase
+                                        text-white/25 py-8">
+                            No concurrent file IO detected
+                          </p>
+                        )}
+                      </div>
+                    </GlassPanel>
+                  </div>
+
+                  {/* Correlated patterns */}
+                  <div className="md:col-span-5">
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <Server size={12} className="text-white/35" />
+                      <p className="text-[9px] font-black uppercase text-white/35 tracking-[0.3em]">
+                        Correlated Patterns
+                      </p>
+                    </div>
+                    <GlassPanel hover={false} className="p-5">
+                      <div className="space-y-2.5 max-h-[220px] overflow-y-auto">
+                        {log.similar_attacks?.length > 0 ? log.similar_attacks.map((host, idx) => (
+                          <div key={idx}
+                               className="flex items-center gap-3 p-3 rounded-xl
+                                          bg-white/[0.04] border border-white/[0.08]
+                                          hover:border-indigo-400/30 hover:bg-indigo-500/[0.06]
+                                          transition-all duration-200">
+                            <Server size={14} className="text-indigo-300/60 shrink-0" />
+                            <p className="text-[11px] font-black text-white/70 uppercase truncate">
+                              {host}
+                            </p>
+                          </div>
+                        )) : (
+                          <p className="text-center text-[10px] font-bold uppercase
+                                        text-white/25 py-8">
+                            Isolation Active // No Matches
+                          </p>
+                        )}
+                      </div>
+                    </GlassPanel>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 const AnomalyClients = ({ setLoading, setError }) => {
-  const { hostname } = useParams();
-  const navigate = useNavigate();
-  
-  // 1. Get the Layout context safely
-  const context = useOutletContext();
-  const setHeaderData = context?.setHeaderData;
+  const { hostname }    = useParams();
+  const navigate        = useNavigate();
+  const context         = useOutletContext();
+  const setHeaderData   = context?.setHeaderData;
 
-  const [data, setData] = useState({ today_anomalies: 0, data: [] });
+  const [data, setData]               = useState({ today_anomalies: 0, data: [] });
   const [localLoading, setLocalLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm]   = useState('');
   const [selectedLog, setSelectedLog] = useState(null);
-  const [showRawLog, setShowRawLog] = useState(false);
-  
-  const [ghostFiles, setGhostFiles] = useState([]);
-  const [ghostLoading, setGhostLoading] = useState(false);
 
-  // 2. Sync Topbar Title with Layout
   useEffect(() => {
-    if (setHeaderData) {
-      setHeaderData({
-        name: `Node: ${hostname}`,
-        desc: "Client_Behavioral_Analysis"
-      });
-    }
+    setHeaderData?.({ name: `Node: ${hostname}`, desc: "Forensic_Stream" });
   }, [hostname, setHeaderData]);
 
-  // 3. Optimized fetch with useCallback
   const fetchToday = useCallback(async () => {
-    setLoading?.(true);
-    setError?.(null);
     try {
-      const res = await fetch(`${API_BASE}/anomalies/today/${hostname}`);
-      if (!res.ok) throw new Error(`Link_Fault: ${res.status}`);
+      const res    = await fetch(`${API_BASE}/anomalies/today/${hostname}`);
+      if (!res.ok) throw new Error();
       const result = await res.json();
-      setData({
-        today_anomalies: result.today_anomalies || 0,
-        data: result.data || []
-      });
-      setLoading?.(false);
-      setLocalLoading(false);
-    } catch (err) {
-      setLoading?.(false);
-      setLocalLoading(false);
-      setError?.("Uplink to Client SOC failed: Registry Unresponsive");
-    }
-  }, [hostname, setLoading, setError]);
-
-  const fetchGhostData = async (log) => {
-    setGhostLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/fim/${hostname}/${log.timestamp}`);
-      const result = await res.json();
-      setGhostFiles(result.data || []); 
-    } catch (err) {
-      console.error("Ghost Mode Fetch Failed:", err);
-    } finally {
-      setGhostLoading(false);
-    }
-  };
+      setData({ today_anomalies: result.today_anomalies || 0, data: result.data || [] });
+    } catch { /* silent */ }
+    finally { setLocalLoading(false); }
+  }, [hostname]);
 
   useEffect(() => {
     if (hostname) fetchToday();
   }, [hostname, fetchToday]);
 
-  const filteredData = (data.data || []).filter(item => 
+  const filteredData = (data.data || []).filter(item =>
     item.process?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.summary?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const maxRisk = data.data.length > 0
+    ? Math.max(...data.data.map(d => d.risk_score || 0))
+    : 0;
+
   return (
-    <div className="space-y-8 relative selection:bg-cyan-500/30">
-      
-      {/* HEADER CONTROLS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-3">
-           <div className="h-3 w-3 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_#06b6d4]" />
-           <span className="font-roboto-condensed text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">Live_Telemetry</span>
+    <div className="space-y-6 pb-24 relative selection:bg-indigo-500/20">
+
+      {/* ── HEADER ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <GlassPanel hover={false} className="p-3">
+            <Orbit size={20} className="text-white/60 animate-spin-slow" />
+          </GlassPanel>
+          <div>
+            <span className="font-black text-[9px] text-white/35 uppercase tracking-[0.4em]">
+              Forensic_Telemetry
+            </span>
+            <h3 className="text-2xl font-black text-white uppercase tracking-tight
+                           drop-shadow-[0_1px_8px_rgba(255,255,255,0.1)]">
+              Live Buffer
+            </h3>
+          </div>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3">
-          <button
+          <GlassInput
+            icon={Search}
+            type="text"
+            placeholder="Search sequence..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{ width: "16rem" }}
+          />
+          <GlassButton
+            variant="solid"
             onClick={() => navigate(`/clients/${hostname}/client-anomaly/history`)}
-            className="font-roboto-condensed flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all text-purple-400 bg-purple-500/5 border border-purple-500/20 hover:bg-purple-500/10 hover:border-purple-400 active:scale-95 group shadow-2xl"
           >
-            <History size={14} className="group-hover:rotate-[-45deg] transition-transform" /> 
+            <History size={14} />
             Forensic Archives
-          </button>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-            <input
-              type="text"
-              placeholder="Search buffer..."
-              className="font-roboto-condensed bg-gray-900/50 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-xs outline-none focus:border-cyan-500 transition-all w-full md:w-64 uppercase tracking-widest"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          </GlassButton>
         </div>
       </div>
 
-      {/* STAT TILES */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <StatTile label="Events (24h)" value={data.today_anomalies} color="cyan" />
-        <StatTile 
-          label="Max Risk Index" 
-          value={`${data.data.length > 0 ? Math.max(...data.data.map(d => d.risk_score || 0)) : 0}%`} 
-          color="red" 
-        />
+      {/* ── STAT TILES ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <StatTile label="Events (24h)"       value={data.today_anomalies} color="cyan" />
+        <StatTile label="Risk Index Ceiling" value={`${maxRisk}%`}        color="red"  />
       </div>
 
-      {/* FEED LIST */}
-      <div className="space-y-4 cyber-scroll max-h-[60vh] overflow-y-auto pr-2">
-        {filteredData.length === 0 ? (
-          <div className="font-jetbrains p-20 text-center border border-dashed border-white/5 rounded-[2.5rem] text-gray-600 text-sm">
-            Risks nominal. No behavioural deviations in current buffer.
-          </div>
+      {/* ── EVENT FEED ── */}
+      <div className="space-y-3">
+        {localLoading ? (
+          <GlassPanel hover={false} className="py-20 text-center">
+            <div className="w-8 h-8 border border-white/20 border-t-white/70 rounded-full
+                            animate-spin mx-auto mb-4" />
+            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">
+              Syncing Neural Registry
+            </p>
+          </GlassPanel>
+        ) : filteredData.length === 0 ? (
+          <GlassPanel hover={false} className="py-20 text-center">
+            <p className="text-white/30 font-bold uppercase tracking-widest text-xs">
+              No deviations in current buffer
+            </p>
+          </GlassPanel>
         ) : (
-          filteredData.map((log) => (
-            <motion.div 
-              key={log.event_id}
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              onClick={() => { setSelectedLog(log); setShowRawLog(false); fetchGhostData(log); }}
-              className="group bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 p-5 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-md transition-all relative overflow-hidden cursor-pointer shadow-xl"
-            >
-              <div className="flex items-center gap-6 flex-1 min-w-0 w-full">
-                 <div className={`p-4 rounded-2xl border shrink-0 ${log.risk_score > 80 ? 'border-red-500/30 bg-red-500/5 text-red-500 shadow-lg' : 'border-cyan-500/30 bg-cyan-500/5 text-cyan-400'}`}>
-                    <Fingerprint size={24} />
-                 </div>
-                 <div className="min-w-0 flex-1">
-                    <h4 className="font-inter text-xl font-black tracking-tight uppercase group-hover:text-cyan-400 transition-colors truncate">
-                      {log.process || 'SYSTEM_CORE'}
-                    </h4>
-                    <p className="font-jetbrains text-[10px] text-gray-500 truncate mt-0.5 uppercase tracking-tight">
-                      {log.summary || 'Behavioural deviation recorded in stream'}
-                    </p>
-                    <div className="flex flex-wrap gap-4 mt-3">
-                        <div className="flex items-center gap-1.5 opacity-40 shrink-0">
-                          <Clock size={10}/>
-                          <span className="font-roboto-condensed text-[9px]">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-cyan-500/60 font-jetbrains text-[9px] min-w-0">
-                          <Binary size={10} className="shrink-0"/>
-                          <span className="truncate uppercase tracking-tighter">{log.process_chain?.join(' > ') || 'Execution_Chain'}</span>
-                        </div>
-                    </div>
-                 </div>
-              </div>
-
-              <div className="flex items-center gap-8 shrink-0 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
-                 <div className="text-right">
-                    <p className="font-roboto-condensed text-[8px] font-black text-gray-600 uppercase mb-1 tracking-widest">Risk_Magnitude</p>
-                    <div className="flex items-center gap-3">
-                        <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
-                            <div className={`h-full ${log.risk_score > 80 ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-cyan-500 shadow-[0_0_8px_#06b6d4]'}`} style={{ width: `${log.risk_score}%` }} />
-                        </div>
-                        <span className={`font-jetbrains text-xs font-black ${log.risk_score > 80 ? 'text-red-400' : 'text-cyan-400'}`}>{log.risk_score}%</span>
-                    </div>
-                 </div>
-                 <ChevronRight size={20} className="text-gray-700 group-hover:text-white transition-all transform group-hover:translate-x-1" />
-              </div>
-            </motion.div>
+          filteredData.map(log => (
+            <EventRow key={log.event_id} log={log} onClick={() => setSelectedLog(log)} />
           ))
         )}
       </div>
 
-      {/* DETAIL MODAL */}
+      {/* ── DETAIL MODAL ── */}
       <AnimatePresence>
         {selectedLog && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[250] flex items-center justify-center p-4 md:p-8 bg-black/60 backdrop-blur-md">
-            <div className="absolute inset-0" onClick={() => setSelectedLog(null)} />
-            <motion.div initial={{ scale: 0.98, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.98, opacity: 0, y: 10 }}
-              className="bg-[#05070a] border border-white/10 w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] overflow-hidden flex flex-col relative z-[260] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
-            >
-              {/* Modal Content... (rest of your modal code is structurally fine) */}
-              <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.02]">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className={`p-4 rounded-2xl border-2 shadow-xl backdrop-blur-md shrink-0 ${selectedLog.risk_score > 80 ? "border-red-500/50 text-red-500 bg-red-500/5" : "border-cyan-500/50 text-cyan-400 bg-cyan-500/5"}`}>
-                    <Fingerprint size={24} />
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className="font-inter text-xl font-black uppercase tracking-tight text-white truncate">{selectedLog.process}</h2>
-                    <p className="font-jetbrains text-[8px] text-gray-400 uppercase tracking-widest mt-0.5 truncate">Sequence: {selectedLog.event_id?.slice(0, 18)}...</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                  <button onClick={() => setShowRawLog(!showRawLog)} className={`font-roboto-condensed flex items-center gap-2 px-4 py-2 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all backdrop-blur-md ${showRawLog ? "bg-purple-500 text-white border-purple-400" : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10"}`}>
-                    <Code size={12} /> {showRawLog ? "HUD View" : "Raw Log"}
-                  </button>
-                  <button onClick={() => setSelectedLog(null)} className="p-2.5 bg-white/5 hover:bg-red-500/20 rounded-full text-gray-500 hover:text-white transition-all active:scale-90 border border-white/5 shrink-0"><X size={18} /></button>
-                </div>
-              </div>
-
-              <div className="p-6 md:p-8 space-y-8 overflow-y-auto cyber-scroll flex-1">
-                {showRawLog ? (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 font-jetbrains text-[11px] leading-relaxed overflow-hidden h-full min-h-[400px]">
-                    <pre className="text-cyan-400/80 whitespace-pre-wrap overflow-x-auto cyber-scroll h-full">{JSON.stringify(selectedLog, null, 2)}</pre>
-                  </motion.div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 overflow-hidden">
-                      <div className="md:col-span-4 bg-white/[0.03] border border-white/5 p-8 rounded-3xl flex flex-col justify-center min-h-[160px] shadow-inner">
-                        <h3 className="font-roboto-condensed text-[9px] font-black uppercase text-gray-400 tracking-[0.2em] mb-4 flex items-center gap-2"><Activity size={12} /> Risk Magnitude</h3>
-                        <span className="font-jetbrains text-5xl font-black text-white leading-none">{selectedLog.risk_score}%</span>
-                        <div className="mt-6 h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div className={`h-full ${selectedLog.risk_score > 80 ? "bg-red-500 shadow-[0_0_10px_red]" : "bg-cyan-500 shadow-[0_0_10px_cyan]"}`} style={{ width: `${selectedLog.risk_score}%` }} />
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-8 bg-white/[0.03] border border-white/5 p-8 rounded-3xl min-h-[160px] overflow-hidden flex flex-col">
-                        <h3 className="font-roboto-condensed text-[9px] font-black uppercase text-gray-400 tracking-[0.2em] mb-4 flex items-center gap-2"><ShieldAlert size={12} /> Execution_Chain</h3>
-                        <div className="flex items-center gap-3 overflow-x-auto pb-4 cyber-scroll mt-auto min-h-[80px]">
-                          {selectedLog.process_chain?.map((proc, idx) => (
-                            <React.Fragment key={idx}>
-                              <div className="flex flex-col items-center gap-1 shrink-0">
-                                <div className={`p-3 rounded-xl border backdrop-blur-sm ${idx === selectedLog.process_chain.length - 1 ? "border-red-500 bg-red-500/10 text-red-500 animate-pulse" : "border-white/10 bg-white/5 text-gray-400"}`}><Cpu size={16} /></div>
-                                <span className="font-jetbrains text-[9px] uppercase text-gray-300 tracking-tighter">{proc}</span>
-                              </div>
-                              {idx < selectedLog.process_chain.length - 1 && (
-                                <div className="flex items-center self-start pt-5 shrink-0">
-                                   <div className="w-6 h-[1px] bg-white/10 border-t border-dashed" />
-                                </div>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 overflow-hidden">
-                      <div className="md:col-span-7 space-y-3 min-w-0">
-                        <div className="flex items-center justify-between px-1">
-                          <h3 className="font-roboto-condensed text-[10px] font-black uppercase text-cyan-400 tracking-[0.3em] flex items-center gap-2"><Zap size={14} className="animate-pulse" /> Ghost_Scan</h3>
-                          <span className="font-roboto-condensed text-[8px] text-gray-500 uppercase bg-white/5 px-2 py-0.5 rounded">Temporal Scan ±5m</span>
-                        </div>
-                        <div className="bg-black/20 border border-white/10 rounded-[2rem] p-5 shadow-inner">
-                          <div className="space-y-3 max-h-[220px] overflow-y-auto cyber-scroll pr-2">
-                            {ghostLoading ? <div className="font-roboto-condensed p-10 text-center text-[9px] font-black uppercase text-cyan-500 animate-pulse">Sweeping FIM...</div> : ghostFiles.length > 0 ? ghostFiles.map((file, idx) => (
-                              <div key={idx} className="flex items-center justify-between p-3 bg-white/[0.03] border border-transparent hover:border-white/10 rounded-xl transition-all group min-w-0">
-                                <div className="flex items-center gap-3 min-w-0 flex-1">
-                                  <FileCode size={14} className="text-gray-500" />
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-jetbrains text-[10px] font-bold text-gray-200 group-hover:text-cyan-400 truncate break-all uppercase tracking-tight">{file.path}</p>
-                                    <p className="font-roboto-condensed text-[7px] text-gray-500 uppercase tracking-widest opacity-60">{new Date(file.time).toLocaleTimeString()}</p>
-                                  </div>
-                                </div>
-                                <AlertCircle size={12} className="text-gray-600 shrink-0 ml-2" />
-                              </div>
-                            )) : <div className="font-jetbrains p-10 text-center text-gray-600 text-[9px] uppercase opacity-40">No concurrent file modifications</div>}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-5 space-y-3 min-w-0">
-                        <h3 className="font-roboto-condensed text-[10px] font-black uppercase text-gray-400 tracking-[0.3em] flex items-center gap-2"><Server size={14} /> Correlated Nodes</h3>
-                        <div className="bg-white/[0.02] backdrop-blur-md border border-white/5 p-5 rounded-[2rem] h-full flex flex-col shadow-inner">
-                          <div className="space-y-2 max-h-[220px] overflow-y-auto cyber-scroll pr-2 flex-1">
-                            {selectedLog.similar_attacks?.length > 0 ? selectedLog.similar_attacks.map((host, idx) => (
-                              <div key={idx} className="flex items-center gap-3 p-3 bg-purple-500/5 border border-purple-500/10 rounded-xl group hover:border-purple-400 transition-all backdrop-blur-sm shrink-0">
-                                <Server size={12} className="text-purple-400 shrink-0" />
-                                <p className="font-jetbrains text-[10px] font-black uppercase text-gray-200 truncate">{host}</p>
-                              </div>
-                            )) : <div className="font-jetbrains p-10 text-center text-gray-600 text-[8px] uppercase opacity-40">Isolation achieved // No patterns</div>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-2xl flex items-center justify-between shadow-xl min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                           <Target size={14} className="text-red-400 shrink-0" />
-                           <span className="font-inter text-[9px] font-black uppercase text-red-400 tracking-widest truncate">{selectedLog.summary || 'Deviation event recorded'}</span>
-                        </div>
-                      </div>
-                      <div className="p-5 bg-cyan-500/5 border border-cyan-500/10 rounded-2xl flex items-center justify-between shadow-xl min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                           <Terminal size={14} className="text-cyan-400 shrink-0" />
-                           <span className="font-jetbrains text-[9px] text-cyan-400 tracking-tight truncate uppercase">{selectedLog.command || "N/A"}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
+          <DetailModal
+            key={selectedLog.event_id}
+            log={selectedLog}
+            hostname={hostname}
+            onClose={() => setSelectedLog(null)}
+          />
         )}
       </AnimatePresence>
     </div>
   );
 };
-
-const StatTile = ({ label, value, color }) => (
-  <div className="p-8 bg-white/[0.02] border border-white/5 rounded-[2.5rem] shadow-xl backdrop-blur-md border-b-4 transition-all hover:bg-white/[0.03]" style={{ borderColor: color === 'cyan' ? '#06b6d4' : '#ef4444' }}>
-    <div className="flex items-center gap-3 mb-3">
-        <div className={`h-2 w-2 rounded-full ${color === 'cyan' ? 'bg-cyan-500 shadow-[0_0_8px_cyan]' : 'bg-red-500 shadow-[0_0_8px_red]'}`} />
-        <p className="font-roboto-condensed text-[9px] font-black uppercase text-gray-400 tracking-[0.3em]">{label}</p>
-    </div>
-    <p className={`font-jetbrains text-5xl font-black tracking-tighter ${color === 'cyan' ? 'text-cyan-400' : 'text-red-500'}`}>{value}</p>
-  </div>
-);
 
 export default AnomalyClients;
