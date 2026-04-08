@@ -1,21 +1,17 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { Server, Activity, Terminal, XCircle, ChevronRight, BarChart2 } from "lucide-react";
-import { useOutletContext } from "react-router-dom"; // Added useOutletContext
 
 import Gauge from "../components/Gauge";
 import TimelineChart from "../components/TimelineChart";
 import MiniAreaChart from "../components/MiniAreaChart";
+import Topbar from "../components/Topbar";
 
 const API_BASE = "http://172.24.16.81:8001";
 const POLL_INTERVAL = 3000;
 
 const DockerSettings = () => {
-  // 1. Neural Link: Safe Context Access
-  const context = useOutletContext();
-  const setHeaderData = context?.setHeaderData;
-
   const [aggregate, setAggregate] = useState({ cpu_percent: 0, memory_percent: 0 });
   const [containers, setContainers] = useState([]);
   const [containerStats, setContainerStats] = useState([]);
@@ -24,19 +20,9 @@ const DockerSettings = () => {
   const [containerMemTimeline, setContainerMemTimeline] = useState({});
   const [logs, setLogs] = useState("");
   const [selectedContainer, setSelectedContainer] = useState(null);
-  const timerRef = useRef(null);
+  const mounted = useRef(false);
 
-  // 2. Sync Topbar Title via Layout Context
-  useEffect(() => {
-    if (setHeaderData) {
-      setHeaderData({
-        name: "Docker Hub",
-        desc: "Virtual_Environment_Management // Containerized Infrastructure"
-      });
-    }
-  }, [setHeaderData]);
-
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     try {
       const [aggRes, contRes, statsRes] = await Promise.all([
         axios.get(`${API_BASE}/docker/stats/aggregate`),
@@ -77,19 +63,16 @@ const DockerSettings = () => {
       });
     } catch (err) {
       console.error("❌ Docker fetch failed", err);
-    } finally {
-      // 3. Robust Polling: Clear existing timer before setting a new one
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(loadData, POLL_INTERVAL);
     }
-  }, []);
+  };
 
   useEffect(() => {
     loadData();
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [loadData]);
+    const interval = setInterval(loadData, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => { mounted.current = true; }, []);
 
   const toggleContainer = async (c) => {
     try {
@@ -108,100 +91,103 @@ const DockerSettings = () => {
   };
 
   return (
-    // 4. Removed min-h-screen, bg, and padding handled by DashboardLayout
-    <div className="space-y-8 relative selection:bg-cyan-500/30">
-      
-      {/* HUD GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className="min-h-screen bg-[#020617] text-white font-inter">
+      <Topbar name="Docker Hub" desc="Virtual_Environment_Management" />
+
+      <main className="pt-24 pb-20 px-4 md:px-8 space-y-8 max-w-7xl mx-auto overflow-x-hidden">
         
-        {/* PERFORMANCE HISTORY */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-8 bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 backdrop-blur-md shadow-2xl"
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-            <div className="flex items-center gap-3">
-              <BarChart2 className="w-5 h-5 text-cyan-400" />
-              <h3 className="font-roboto-condensed text-sm font-black uppercase tracking-[0.2em] text-gray-100">Cluster_Dynamics</h3>
-            </div>
-            <div className="font-roboto-condensed flex gap-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
-               <span className="flex items-center gap-2"><div className="w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_8px_#06b6d4]"/> CPU</span>
-               <span className="flex items-center gap-2"><div className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_#a855f7]"/> MEM</span>
-            </div>
-          </div>
+        {/* HUD GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          <div className="h-[250px] md:h-[350px] w-full">
-            <TimelineChart data={timeline} />
+          {/* PERFORMANCE HISTORY */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="lg:col-span-8 bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 backdrop-blur-md shadow-2xl"
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+              <div className="flex items-center gap-3">
+                <BarChart2 className="w-5 h-5 text-cyan-400" />
+                <h3 className="font-roboto-condensed text-sm font-black uppercase tracking-[0.2em] text-gray-100">Cluster_Dynamics</h3>
+              </div>
+              <div className="font-roboto-condensed flex gap-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                 <span className="flex items-center gap-2"><div className="w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_8px_#06b6d4]"/> CPU</span>
+                 <span className="flex items-center gap-2"><div className="w-2 h-2 bg-purple-500 rounded-full shadow-[0_0_8px_#a855f7]"/> MEM</span>
+              </div>
+            </div>
+            
+            <div className="h-[250px] md:h-[350px] w-full">
+              <TimelineChart data={timeline} />
+            </div>
+          </motion.div>
+
+          {/* GAUGES */}
+          <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
+            <Gauge label="Aggregate_CPU" value={aggregate.cpu_percent} />
+            <Gauge label="Memory_Reservation" value={aggregate.memory_percent} />
+          </div>
+        </div>
+
+        {/* CONTAINERS REGISTRY */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 backdrop-blur-md shadow-2xl overflow-hidden"
+        >
+          <div className="flex items-center gap-3 mb-8 px-2">
+            <Server className="w-5 h-5 text-cyan-400" />
+            <h3 className="font-roboto-condensed text-sm font-black uppercase tracking-[0.2em] text-gray-100">Node_Inventory</h3>
+          </div>
+
+          <div className="space-y-4 max-h-[500px] overflow-y-auto cyber-scroll pr-2">
+            {containers.map((c) => (
+              <div
+                key={c.id}
+                className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:p-6 rounded-2xl border border-white/5 bg-[#0a0c14]/60 hover:bg-[#0a0c14]/90 hover:border-cyan-500/20 transition-all group gap-6"
+              >
+                <div className="flex items-center gap-4 min-w-0 w-full md:w-auto">
+                  <ChevronRight className="w-4 h-4 text-cyan-500 opacity-50 group-hover:translate-x-1 transition-transform" />
+                  <div className="min-w-0">
+                    <p className="font-inter text-base font-black text-white truncate uppercase tracking-tight">{c.name}</p>
+                    <p className={`font-roboto-condensed text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2 mt-1 ${c.status === "running" ? "text-green-400" : "text-red-400"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${c.status === "running" ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-red-500 shadow-[0_0_8px_#ef4444]"}`}/>
+                      {c.status}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
+                  {c.status === "running" && (
+                    <div className="flex items-center gap-4">
+                      <div className="text-center font-roboto-condensed">
+                        <p className="text-[7px] font-black text-gray-500 uppercase mb-1">CPU_Live</p>
+                        <MiniAreaChart data={containerTimeline[c.name] || []} color="#22d3ee" />
+                      </div>
+                      <div className="text-center font-roboto-condensed">
+                        <p className="text-[7px] font-black text-gray-500 uppercase mb-1">MEM_Live</p>
+                        <MiniAreaChart data={containerMemTimeline[c.name] || []} color="#a855f7" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 font-roboto-condensed">
+                    <button
+                      onClick={() => toggleContainer(c)}
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${c.status === "running" ? "border-red-500/20 text-red-500 hover:bg-red-500/10" : "border-green-500/20 text-green-400 hover:bg-green-500/10"}`}
+                    >
+                      {c.status === "running" ? "Kill" : "Wake"}
+                    </button>
+                    <button
+                      onClick={() => viewLogs(c.name)}
+                      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10"
+                    >
+                      Logs
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </motion.div>
-
-        {/* GAUGES */}
-        <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
-          <Gauge label="Aggregate_CPU" value={aggregate.cpu_percent} />
-          <Gauge label="Memory_Reservation" value={aggregate.memory_percent} />
-        </div>
-      </div>
-
-      {/* CONTAINERS REGISTRY */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 backdrop-blur-md shadow-2xl overflow-hidden"
-      >
-        <div className="flex items-center gap-3 mb-8 px-2">
-          <Server className="w-5 h-5 text-cyan-400" />
-          <h3 className="font-roboto-condensed text-sm font-black uppercase tracking-[0.2em] text-gray-100">Node_Inventory</h3>
-        </div>
-
-        <div className="space-y-4 max-h-[500px] overflow-y-auto cyber-scroll pr-2">
-          {containers.map((c) => (
-            <div
-              key={c.id}
-              className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:p-6 rounded-2xl border border-white/5 bg-[#0a0c14]/60 hover:bg-[#0a0c14]/90 hover:border-cyan-500/20 transition-all group gap-6"
-            >
-              <div className="flex items-center gap-4 min-w-0 w-full md:w-auto">
-                <ChevronRight className="w-4 h-4 text-cyan-500 opacity-50 group-hover:translate-x-1 transition-transform" />
-                <div className="min-w-0">
-                  <p className="font-inter text-base font-black text-white truncate uppercase tracking-tight">{c.name}</p>
-                  <p className={`font-roboto-condensed text-[10px] font-black uppercase tracking-[0.1em] flex items-center gap-2 mt-1 ${c.status === "running" ? "text-green-400" : "text-red-400"}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${c.status === "running" ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-red-500 shadow-[0_0_8px_#ef4444]"}`}/>
-                    {c.status}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
-                {c.status === "running" && (
-                  <div className="flex items-center gap-4">
-                    <div className="text-center font-roboto-condensed">
-                      <p className="text-[7px] font-black text-gray-500 uppercase mb-1">CPU_Live</p>
-                      <MiniAreaChart data={containerTimeline[c.name] || []} color="#22d3ee" />
-                    </div>
-                    <div className="text-center font-roboto-condensed">
-                      <p className="text-[7px] font-black text-gray-500 uppercase mb-1">MEM_Live</p>
-                      <MiniAreaChart data={containerMemTimeline[c.name] || []} color="#a855f7" />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-2 font-roboto-condensed">
-                  <button
-                    onClick={() => toggleContainer(c)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${c.status === "running" ? "border-red-500/20 text-red-500 hover:bg-red-500/10" : "border-green-500/20 text-green-400 hover:bg-green-500/10"}`}
-                  >
-                    {c.status === "running" ? "Kill" : "Wake"}
-                  </button>
-                  <button
-                    onClick={() => viewLogs(c.name)}
-                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10"
-                  >
-                    Logs
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
+      </main>
 
       {/* LOG VIEWER */}
       <AnimatePresence>

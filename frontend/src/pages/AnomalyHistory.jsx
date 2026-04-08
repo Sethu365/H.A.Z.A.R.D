@@ -1,20 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useOutletContext } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom'; 
 import { 
-  Search, Fingerprint, Binary, Clock, ChevronRight, Orbit, 
-  History, Database, ShieldAlert, X, Code, Cpu, Zap, FileCode, Server, Target, Terminal, ArrowLeft, AlertCircle
+  AlertTriangle, Activity, Terminal, ChevronRight, Search, Cpu, X, 
+  ShieldAlert, Fingerprint, Zap, FileCode, Clock, History, 
+  Database, Orbit, Server, Target, Code, Binary, ArrowLeft, AlertCircle
 } from 'lucide-react';
+import Topbar from "../components/Topbar";
 
 const API_BASE = "http://172.24.16.81:8001";
 
 const AnomalyHistory = ({ setLoading, setError }) => {
   const navigate = useNavigate();
-  
-  // 1. Neural Link: Safe Context Access inside component body
-  const context = useOutletContext();
-  const setHeaderData = context?.setHeaderData;
-
   const [historyData, setHistoryData] = useState({ total_anomalies: 0, data: [] });
   const [localSyncing, setLocalSyncing] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,38 +21,23 @@ const AnomalyHistory = ({ setLoading, setError }) => {
   const [ghostFiles, setGhostFiles] = useState([]);
   const [ghostLoading, setGhostLoading] = useState(false);
 
-  // 2. Sync Topbar Title on Mount
-  useEffect(() => {
-    if (setHeaderData) {
-      setHeaderData({
-        name: "Forensic Vault",
-        desc: "Global_Historical_Registry // Exploits_Archive"
-      });
-    }
-  }, [setHeaderData]);
-
-  const loadHistory = useCallback(async () => {
-    setLoading?.(true);
-    setError?.(null);
+  const loadHistory = async () => {
+    setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch(`${API_BASE}/api/anomalies/history`);
       if (!res.ok) throw new Error(`Vault_Access_Denied: ${res.status}`);
       const result = await res.json();
       setHistoryData({ total_anomalies: result.total_anomalies || 0, data: result.data || [] });
-      setLoading?.(false);
+      setLoading(false);
       setLocalSyncing(false);
     } catch (err) { 
       console.error(err);
-      setLoading?.(false);
-      setError?.("Global Forensic Vault Unresponsive: Link Failure");
-      setLocalSyncing(false);
+      setLoading(false);
+      setError("Global Forensic Vault Unresponsive: Link Failure");
     }
-  }, [setLoading, setError]);
-
-  useEffect(() => { 
-    loadHistory(); 
-  }, [loadHistory]);
+  };
 
   const fetchGhostData = async (log) => {
     setGhostLoading(true);
@@ -66,90 +48,104 @@ const AnomalyHistory = ({ setLoading, setError }) => {
     } catch (err) { console.error(err); } finally { setGhostLoading(false); }
   };
 
+  useEffect(() => { loadHistory(); }, []);
+
   const filteredData = (historyData.data || []).filter(item => 
-    item.hostname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.hostname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.process?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="space-y-8 relative selection:bg-purple-500/30">
-      {/* 3. Global CSS and structure handled by DashboardLayout */}
+    <div className="min-h-screen bg-[#020617] text-white selection:bg-purple-500/30 font-inter">
+      <style>{`
+        .cyber-scroll::-webkit-scrollbar { width: 4px; }
+        .cyber-scroll::-webkit-scrollbar-track { background: transparent; }
+        .cyber-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 20px; }
+        .cyber-scroll::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+      `}</style>
       
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-3">
-           <div className="h-3 w-3 rounded-full bg-purple-500 animate-pulse shadow-[0_0_10px_#8b5cf6]" />
-           <span className="font-roboto-condensed text-[10px] font-black text-purple-400 uppercase tracking-[0.6em]">Forensic_Archives</span>
-        </div>
+      <Topbar name="Forensic Vault" desc="Historical_Registry_Exploits" />
+
+      <main className="pt-24 pb-20 px-4 md:px-8 space-y-8 max-w-7xl mx-auto overflow-x-hidden">
         
-        <div className="flex flex-wrap items-center gap-3">
-          <button 
-              onClick={() => navigate('/anomalies')} 
-              className="font-roboto-condensed flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all text-cyan-400 bg-cyan-500/5 border border-cyan-500/20 hover:bg-cyan-500/10 active:scale-95 group"
-          >
-            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Live Telemetry
-          </button>
-          <div className="relative flex-1 md:flex-initial">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search history..." 
-              className="font-roboto-condensed bg-gray-900/50 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-xs focus:border-purple-500 outline-none w-full md:w-64 uppercase tracking-widest transition-all" 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-            />
+        {/* HEADER CONTROLS */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+             <div className="h-3 w-3 rounded-full bg-purple-500 animate-pulse shadow-[0_0_10px_#8b5cf6]" />
+             <span className="font-roboto-condensed text-[10px] font-black text-purple-400 uppercase tracking-[0.6em]">Forensic_Archives</span>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button 
+                onClick={() => navigate('/anomalies')} 
+                className="font-roboto-condensed flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl transition-all text-cyan-400 bg-cyan-500/5 border border-cyan-500/20 hover:bg-cyan-500/10 active:scale-95"
+            >
+              <ArrowLeft size={14} /> Live Telemetry
+            </button>
+            <div className="relative flex-1 md:flex-initial">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+              <input 
+                type="text" 
+                placeholder="Search history..." 
+                className="font-roboto-condensed bg-gray-900/50 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-xs focus:border-purple-500 outline-none w-full md:w-64 uppercase tracking-widest transition-all" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <StatTile label="Archived Events" value={historyData.total_anomalies} icon={<Database size={24} />} color="purple" />
-        <StatTile label="Resolved Criticals" value={historyData.data.filter(a => a.risk_score >= 90).length} icon={<ShieldAlert size={24} />} color="red" />
-      </div>
+        {/* STAT TILES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <StatTile label="Archived Events" value={historyData.total_anomalies} icon={<Database size={24} />} color="purple" />
+          <StatTile label="Resolved Criticals" value={historyData.data.filter(a => a.risk_score >= 90).length} icon={<ShieldAlert size={24} />} color="red" />
+        </div>
 
-      <div className="space-y-4 cyber-scroll max-h-[60vh] overflow-y-auto pr-2">
-        {localSyncing ? (
-          <div className="font-roboto-condensed p-20 text-center text-gray-600 font-black uppercase tracking-[0.6em] animate-pulse">Syncing Vault...</div>
-        ) : (
-          filteredData.map((log) => (
-            <motion.div 
-              key={log.event_id}
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              onClick={() => { setSelectedLog(log); setShowRawLog(false); fetchGhostData(log); }}
-              className="group bg-white/[0.02] border border-white/5 hover:border-purple-500/30 p-4 md:p-5 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 backdrop-blur-md transition-all relative overflow-hidden cursor-pointer shadow-xl"
-            >
-                <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0 w-full">
-                   <div className={`p-4 rounded-2xl border shrink-0 ${log.risk_score > 80 ? 'border-red-500/30 bg-red-500/5 text-red-500 shadow-lg' : 'border-purple-500/30 bg-purple-500/5 text-purple-400'}`}>
-                      <Fingerprint size={24} />
-                   </div>
-                   <div className="min-w-0 flex-1">
-                      <h4 className="font-inter text-lg md:text-xl font-black tracking-tight uppercase group-hover:text-purple-400 transition-colors truncate">
-                          {log.process || 'SYSTEM_CORE'}
-                      </h4>
-                      <p className="font-jetbrains text-[10px] text-gray-500 truncate mt-0.5 uppercase">
-                          NODE :: {log.hostname} // {new Date(log.timestamp).toLocaleDateString()}
-                      </p>
-                      <div className="flex flex-wrap gap-3 mt-3">
-                          <div className="flex items-center gap-1.5 opacity-40 shrink-0">
-                              <Clock size={10}/>
-                              <span className="font-roboto-condensed text-[9px]">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-purple-500/60 font-jetbrains text-[9px] min-w-0 uppercase tracking-tighter">
-                            <Binary size={10} className="shrink-0"/>
-                            <span className="truncate">{log.process_chain?.join(' > ') || 'Execution_Chain'}</span>
-                          </div>
-                      </div>
-                   </div>
-                </div>
-                
-                <div className="flex items-center gap-6 shrink-0 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
-                   <div className="text-right">
-                      <p className="font-roboto-condensed text-[8px] font-black text-gray-600 uppercase mb-1 tracking-widest">Risk_Magnitude</p>
-                      <div className="flex items-center gap-3">
-                          <div className="w-20 md:w-24 h-1 bg-white/5 rounded-full overflow-hidden">
-                              <div className={`h-full ${log.risk_score > 80 ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-purple-500'}`} style={{ width: `${log.risk_score}%` }} />
-                          </div>
-                          <span className={`font-jetbrains text-xs font-black ${log.risk_score > 80 ? 'text-red-400' : 'text-purple-400'}`}>{log.risk_score}%</span>
+        {/* FEED LIST */}
+        <div className="space-y-4 cyber-scroll max-h-[60vh] overflow-y-auto pr-2">
+          {localSyncing ? (
+            <div className="font-roboto-condensed p-20 text-center text-gray-600 font-black uppercase tracking-[0.6em] animate-pulse">Syncing Vault...</div>
+          ) : (
+            filteredData.map((log) => (
+              <motion.div 
+                key={log.event_id}
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                onClick={() => { setSelectedLog(log); setShowRawLog(false); fetchGhostData(log); }}
+                className="group bg-white/[0.02] border border-white/5 hover:border-purple-500/30 p-4 md:p-5 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 backdrop-blur-md transition-all relative overflow-hidden cursor-pointer shadow-xl"
+              >
+                  <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0 w-full">
+                     <div className={`p-4 rounded-2xl border shrink-0 ${log.risk_score > 80 ? 'border-red-500/30 bg-red-500/5 text-red-500 shadow-lg' : 'border-purple-500/30 bg-purple-500/5 text-purple-400'}`}>
+                        <Fingerprint size={24} />
+                     </div>
+                     <div className="min-w-0 flex-1">
+                        <h4 className="font-inter text-lg md:text-xl font-black tracking-tight uppercase group-hover:text-purple-400 transition-colors truncate">
+                            {log.process || 'SYSTEM_CORE'}
+                        </h4>
+                        <p className="font-jetbrains text-[10px] text-gray-500 truncate mt-0.5 uppercase">
+                            NODE :: {log.hostname} // {new Date(log.timestamp).toLocaleDateString()}
+                        </p>
+                        <div className="flex flex-wrap gap-3 mt-3">
+                            <div className="flex items-center gap-1.5 opacity-40 shrink-0">
+                                <Clock size={10}/>
+                                <span className="font-roboto-condensed text-[9px]">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-purple-500/60 font-jetbrains text-[9px] min-w-0 uppercase tracking-tighter">
+                              <Binary size={10} className="shrink-0"/>
+                              <span className="truncate">{log.process_chain?.join(' > ') || 'Execution_Chain'}</span>
+                            </div>
+                        </div>
+                     </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-6 shrink-0 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
+                     <div className="text-right">
+                        <p className="font-roboto-condensed text-[8px] font-black text-gray-600 uppercase mb-1 tracking-widest">Risk_Magnitude</p>
+                        <div className="flex items-center gap-3">
+                            <div className="w-20 md:w-24 h-1 bg-white/5 rounded-full overflow-hidden">
+                                <div className={`h-full ${log.risk_score > 80 ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-purple-500'}`} style={{ width: `${log.risk_score}%` }} />
+                            </div>
+                            <span className={`font-jetbrains text-xs font-black ${log.risk_score > 80 ? 'text-red-400' : 'text-purple-400'}`}>{log.risk_score}%</span>
                         </div>
                      </div>
                      <ChevronRight size={20} className="text-gray-700 group-hover:text-white transition-all transform group-hover:translate-x-1" />
@@ -159,7 +155,7 @@ const AnomalyHistory = ({ setLoading, setError }) => {
           )}
         </div>
 
-        {/* Modal Logic Remains mostly the same, but wrapped in context-aware safety */}
+        {/* FORENSIC MODAL */}
         <AnimatePresence>
           {selectedLog && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[250] flex items-center justify-center p-3 md:p-8 bg-black/60 backdrop-blur-md">
@@ -167,6 +163,7 @@ const AnomalyHistory = ({ setLoading, setError }) => {
               <motion.div initial={{ scale: 0.98, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.98, opacity: 0, y: 10 }}
                 className="bg-[#05070a] border border-white/10 w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] overflow-hidden flex flex-col relative z-[260] shadow-[0_20px_60px_rgba(0,0,0,0.7)]"
               >
+                {/* MODAL HEADER */}
                 <div className="p-5 md:p-6 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/[0.02]">
                   <div className="flex items-center gap-4 min-w-0">
                     <div className={`p-4 rounded-2xl border-2 shadow-xl backdrop-blur-md shrink-0 ${selectedLog.risk_score > 80 ? "border-red-500/50 text-red-500 bg-red-500/5" : "border-purple-500/50 text-purple-400 bg-purple-500/5"}`}>
@@ -174,7 +171,7 @@ const AnomalyHistory = ({ setLoading, setError }) => {
                     </div>
                     <div className="min-w-0">
                       <h2 className="font-inter text-lg md:text-xl font-black uppercase tracking-tight text-white truncate">{selectedLog.process}</h2>
-                      <p className="font-jetbrains text-[8px] text-gray-400 uppercase tracking-widest mt-0.5 truncate">Sequence: {selectedLog.event_id?.slice(0, 18)}...</p>
+                      <p className="font-jetbrains text-[8px] text-gray-400 uppercase tracking-widest mt-0.5 truncate">Sequence: {selectedLog.event_id.slice(0, 18)}...</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -185,6 +182,7 @@ const AnomalyHistory = ({ setLoading, setError }) => {
                   </div>
                 </div>
 
+                {/* MODAL BODY */}
                 <div className="p-6 md:p-8 space-y-8 overflow-y-auto cyber-scroll flex-1">
                   {showRawLog ? (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-black/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 font-jetbrains text-[11px] leading-relaxed overflow-hidden h-full min-h-[400px]">
@@ -221,6 +219,7 @@ const AnomalyHistory = ({ setLoading, setError }) => {
                         </div>
                       </div>
 
+                      {/* GHOST_SCAN & CORRELATION */}
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 overflow-hidden">
                         <div className="md:col-span-7 space-y-3 min-w-0">
                           <div className="flex items-center justify-between px-1">
@@ -260,6 +259,7 @@ const AnomalyHistory = ({ setLoading, setError }) => {
                         </div>
                       </div>
 
+                      {/* BOTTOM ROW */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-5 bg-red-500/5 border border-red-500/10 rounded-2xl flex items-center justify-between shadow-xl min-w-0">
                           <div className="flex items-center gap-2 min-w-0">
@@ -281,6 +281,7 @@ const AnomalyHistory = ({ setLoading, setError }) => {
             </motion.div>
           )}
         </AnimatePresence>
+      </main>
     </div>
   );
 };

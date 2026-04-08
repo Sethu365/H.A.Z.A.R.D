@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams, useOutletContext } from "react-router-dom"; // Added useOutletContext
+import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Search, X, RefreshCw, ChevronRight
+  Terminal, Search, X, RefreshCw, ChevronRight, Cpu, GitBranch
 } from "lucide-react";
+import Topbar from "../components/Topbar";
 
 const API_BASE = "http://172.24.16.81:8001/client";
 
-// --- Keep HorizontalTreeNode exactly as it was ---
 const HorizontalTreeNode = ({ node, selectedPid }) => {
   const getEventDetail = (details, keys) => {
     for (const key of keys) { if (details[key]) return details[key]; }
@@ -64,44 +64,23 @@ const HorizontalTreeNode = ({ node, selectedPid }) => {
 
 const ProcessTree = ({ setLoading, setError }) => {
   const { hostname } = useParams();
-  
-  // 1. Neural Link: Safe Context Access
-  const context = useOutletContext();
-  const setHeaderData = context?.setHeaderData;
-
   const [treeData, setTreeData] = useState([]);
   const [localSyncing, setLocalSyncing] = useState(true);
   const [selectedNode, setSelectedNode] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("table");
 
-  // 2. Sync Topbar Identity via Layout Context
-  useEffect(() => {
-    if (setHeaderData) {
-      setHeaderData({
-        name: "Forensic Timeline",
-        desc: `Node_Analysis // Host: ${hostname}`
-      });
-    }
-  }, [hostname, setHeaderData]);
-
   const fetchTree = useCallback(async (isInitial = false) => {
-    if (isInitial) { 
-      setLoading?.(true); 
-      setError?.(null); 
-    }
+    if (isInitial) { setLoading(true); setError(null); }
     setLocalSyncing(true);
     try {
       const res = await fetch(`${API_BASE}/timeline-tree/${hostname}`);
       const data = await res.json();
       setTreeData(data.tree || []);
-      if (isInitial) setLoading?.(false);
+      if (isInitial) setLoading(false);
       setLocalSyncing(false);
     } catch (err) {
-      if (isInitial) { 
-        setLoading?.(false); 
-        setError?.("Forensic Registry Link Failure"); 
-      }
+      if (isInitial) { setLoading(false); setError("Vault sync failed"); }
       setLocalSyncing(false);
     }
   }, [hostname, setLoading, setError]);
@@ -146,12 +125,13 @@ const ProcessTree = ({ setLoading, setError }) => {
   );
 
   return (
-    // 3. Removed min-h-screen/pt-24 (handled by DashboardLayout)
-    // Adjusted h-full to fit within the layout's viewport
-    <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-160px)] h-full selection:bg-cyan-500/30">
+    <div className="min-h-screen bg-[#020617] text-white flex flex-col overflow-hidden font-inter">
+      <Topbar name="Forensic Timeline" desc={`Node_Analysis :: ${hostname}`} />
+
+      <main className="flex-1 pt-24 pb-20 px-4 md:px-8 lg:ml-20 max-w-[1800px] w-full flex flex-col lg:flex-row gap-6 overflow-hidden transition-all duration-500">
         
         {/* LEFT COLUMN: REGISTRY */}
-        <div className={`flex flex-col space-y-6 transition-all duration-500 ${selectedNode ? 'hidden lg:flex lg:w-1/3 xl:w-1/4' : 'w-full'}`}>
+        <div className={`flex flex-col space-y-6 transition-all duration-500 h-full ${selectedNode ? 'hidden lg:flex lg:w-1/3 xl:w-1/4' : 'w-full'}`}>
           <header className="bg-white/[0.02] border border-white/5 p-4 rounded-[2rem] flex flex-col gap-4">
             <div className="flex items-center justify-between px-2">
                <span className="font-roboto-condensed text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Process_Registry</span>
@@ -175,7 +155,7 @@ const ProcessTree = ({ setLoading, setError }) => {
             <div className="overflow-y-auto cyber-scroll flex-1">
               <table className="w-full text-left">
                 <thead className="sticky top-0 bg-[#0a0c14] z-20 border-b border-white/5">
-                  <tr className="font-roboto-condensed text-[9px] font-black uppercase text-gray-700 tracking-widest">
+                  <tr className="font-roboto-condensed text-[9px] font-black uppercase text-gray-500 tracking-widest">
                     <th className="px-6 py-4">Event</th>
                     <th className="px-4 py-4 text-right">PID</th>
                   </tr>
@@ -203,14 +183,14 @@ const ProcessTree = ({ setLoading, setError }) => {
               initial={{ opacity: 0, x: 50 }} 
               animate={{ opacity: 1, x: 0 }} 
               exit={{ opacity: 0, x: 50 }}
-              className="flex-1 flex flex-col bg-[#05070a] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl h-full"
+              className="flex-1 flex flex-col bg-[#05070a] border border-white/10 lg:border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl h-full"
             >
               <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
                 <div className="font-roboto-condensed flex bg-black/40 border border-white/10 rounded-2xl p-1.5">
                    <button onClick={() => setViewMode('table')} className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase transition-all ${viewMode === 'table' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}>Inspector</button>
                    <button onClick={() => setViewMode('tree')} className={`px-6 py-2 text-[10px] font-black rounded-xl uppercase transition-all ${viewMode === 'tree' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}>Ancestry Tree</button>
                 </div>
-                <button onClick={() => setSelectedNode(null)} className="p-2 bg-white/5 hover:bg-red-500/20 rounded-full transition-colors"><X size={20} className="text-gray-500 hover:text-white"/></button>
+                <button onClick={() => setSelectedNode(null)} className="p-2 bg-white/5 hover:bg-red-500/20 rounded-full transition-colors"><X size={20}/></button>
               </div>
 
               <div className="flex-1 overflow-y-auto cyber-scroll bg-[radial-gradient(circle_at_center,_#ffffff03_1px,_transparent_1px)] bg-[size:24px_24px]">
@@ -218,11 +198,11 @@ const ProcessTree = ({ setLoading, setError }) => {
                   <div className="p-8 space-y-8">
                      <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white/[0.02] p-6 rounded-[1.5rem] border border-white/5">
-                           <p className="font-roboto-condensed text-[8px] font-black text-gray-600 uppercase tracking-widest mb-1">Process_PID</p>
+                           <p className="font-roboto-condensed text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">Process_PID</p>
                            <p className="font-jetbrains text-xl font-black text-white">{selectedNode.pid}</p>
                         </div>
                         <div className="bg-white/[0.02] p-6 rounded-[1.5rem] border border-white/5">
-                           <p className="font-roboto-condensed text-[8px] font-black text-gray-600 uppercase tracking-widest mb-1">Parent_PID</p>
+                           <p className="font-roboto-condensed text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">Parent_PID</p>
                            <p className="font-jetbrains text-xl font-black text-gray-400">{selectedNode.ppid || "0"}</p>
                         </div>
                      </div>
@@ -254,6 +234,7 @@ const ProcessTree = ({ setLoading, setError }) => {
             </motion.div>
           )}
         </AnimatePresence>
+      </main>
     </div>
   );
 };

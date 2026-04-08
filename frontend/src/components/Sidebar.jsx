@@ -1,205 +1,145 @@
 import React from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom"; 
 import { motion } from "framer-motion";
 import eyeLogo from "../assets/eye.png";
-import { TOPBAR_HEIGHT } from "./Topbar";
 import {
   Users, AlertTriangle, Settings, Activity, Info,
-  Terminal, GitBranch, FolderOpen, ChevronLeft, Command, OctagonAlert
+  Terminal, GitBranch, FolderOpen, ChevronLeft, Command, OctagonAlert,
+  Cpu, ShieldCheck, Zap
 } from "lucide-react";
 
 const Sidebar = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
   const clientPathMatch = location.pathname.match(/^\/clients\/([^/]+)/);
   const hostname = clientPathMatch ? clientPathMatch[1] : null;
 
   const mainNavItems = [
-    { path: "/", icon: Activity, label: "Dash" },
+    { path: "/", icon: Activity, label: "Dashboard" },
     { path: "/clients", icon: Users, label: "Clients" },
-    { path: "/anomalies", icon: AlertTriangle, label: "Alerts" },
+    { path: "/anomalies", icon: AlertTriangle, label: "Anomalies" },
     { path: "/scraper", icon: Command, label: "Intel" },
-    { path: "/settings", icon: Settings, label: "Config" },
+    { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
   const clientNavItems = hostname ? [
-    { path: `/clients/${hostname}`, icon: Info, label: "Info", end: true },
-    { path: `/clients/${hostname}/control`, icon: Terminal, label: "Shell" },
+    { path: `/clients/${hostname}`, icon: Info, label: "Details", end: true },
+    { path: `/clients/${hostname}/control`, icon: Terminal, label: "Console" },
     { path: `/clients/${hostname}/process-tree`, icon: GitBranch, label: "Tree" },
     { path: `/clients/${hostname}/file-explorer`, icon: FolderOpen, label: "Files" },
-    { path: `/clients/${hostname}/client-anomaly`, icon: OctagonAlert, label: "Status" }
+    { path: `/clients/${hostname}/client-anomaly`, icon: OctagonAlert, label: "Alerts" }
   ] : [];
 
   const activeNavItems = hostname ? clientNavItems : mainNavItems;
 
   return (
-    <>
-      {/* ─── DESKTOP LIQUID GLASS SIDEBAR ─── */}
-      <motion.aside
-        initial={{ x: -80, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 28 }}
-        style={{ top: TOPBAR_HEIGHT }}          /* ← exact seam with topbar */
-        className="hidden lg:flex fixed left-0 bottom-0 w-20 flex-col z-30
-                   overflow-hidden rounded-r-[2.5rem]
-                   backdrop-blur-[35px] saturate-[2.2]
-                   bg-white/[0.08] dark:bg-black/20
-                   border-t border-white/10
-                   border-r border-b border-white/5
-                   shadow-[
-                     4px_0_40px_rgba(0,0,0,0.15),
-                     0_2px_5px_rgba(0,0,0,0.1),
-                     inset_0_0_30px_rgba(255,255,255,0.08),
-                     inset_0_0_2px_rgba(255,255,255,0.35)
-                   ]"
-      >
-        {/* LIQUID SHINE */}
-        <div className="absolute -top-[150%] -left-[50%] w-[200%] h-[200%]
-                        bg-gradient-to-br from-white/15 via-transparent to-transparent
-                        rotate-12 pointer-events-none z-0" />
+    <motion.aside
+      initial={{ x: -100 }}
+      animate={{ x: 0 }}
+      className="fixed left-0 top-0 h-screen w-20 hover:w-64 group transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] bg-[#020617] border-r border-white/5 flex flex-col z-[100] overflow-hidden"
+    >
+      {/* VERTICAL ACCENT LINE */}
+      <div className="absolute right-0 top-0 h-full w-[1px] bg-gradient-to-b from-transparent via-cyan-500/20 to-transparent" />
 
-        {/* CAUSTIC LIGHT */}
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 via-transparent to-cyan-500/5
-                        opacity-40 pointer-events-none z-0" />
-
-        {/* RIGHT BEVEL */}
-        <div className="absolute right-0 top-0 w-[1px] h-full
-                        bg-gradient-to-b from-transparent via-white/20 to-transparent
-                        pointer-events-none z-10" />
-
-        {/* ── LOGO ── */}
-        <div className="relative z-10 flex flex-col items-center py-5 border-b border-white/10">
-          <div className="relative cursor-pointer group" onClick={() => navigate('/')}>
-            <img
-              src={eyeLogo}
-              alt="Logo"
-              className="w-8 h-8 object-contain filter grayscale group-hover:grayscale-0
-                         transition-all duration-300 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
-            />
-            <div className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full border-2 border-white/20
-                            bg-green-400 shadow-[0_0_8px_#4ade80,0_0_16px_#4ade8066]" />
-          </div>
+      {/* LOGO SECTION - SKELETAL DESIGN */}
+      <div className="flex flex-col items-center py-10 relative">
+        <div 
+          className="relative cursor-pointer group/logo"
+          onClick={() => navigate('/')}
+        >
+          <img 
+            src={eyeLogo} 
+            alt="AURORA" 
+            className="w-10 h-10 object-contain filter brightness-125 group-hover/logo:scale-110 transition-transform duration-500" 
+          />
+          <div className="absolute -inset-4 bg-cyan-500/5 blur-2xl rounded-full group-hover/logo:bg-cyan-500/20 transition-all" />
         </div>
-
-        {/* ── NAV ── */}
-        <nav className="relative z-10 flex-1 flex flex-col items-center py-5 space-y-3
-                        overflow-y-auto no-scrollbar">
-
-
-          <div className="w-full px-2 space-y-2">
-            {activeNavItems.map(({ path, icon: Icon, label, end }) => (
-              <NavLink
-                key={path}
-                to={path}
-                end={end}
-                className={({ isActive }) => `
-                  group relative flex flex-col items-center justify-center w-full h-14 rounded-2xl
-                  transition-all duration-200 overflow-hidden
-                  ${isActive
-                    ? `bg-white/15 border border-white/25
-                       shadow-[inset_0_1px_3px_rgba(255,255,255,0.2),0_4px_15px_rgba(0,0,0,0.1)]
-                       text-white`
-                    : `text-white/35 border border-transparent
-                       hover:bg-white/8 hover:border-white/15 hover:text-white/70
-                       hover:shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]`
-                  }
-                `}
-              >
-                {({ isActive }) => (
-                  <>
-                    {isActive && (
-                      <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent
-                                      to-transparent pointer-events-none" />
-                    )}
-                    {isActive && (
-                      <motion.div
-                        layoutId="nav-indicator"
-                        className="absolute left-0 w-[3px] h-8 rounded-r-full
-                                   bg-gradient-to-b from-white/90 to-white/40
-                                   shadow-[0_0_10px_rgba(255,255,255,0.6),0_0_20px_rgba(255,255,255,0.3)]"
-                      />
-                    )}
-                    <Icon className="w-5 h-5 mb-1 relative z-10" strokeWidth={isActive ? 2.5 : 1.8} />
-                    <span className="text-[8px] font-bold uppercase tracking-widest leading-none relative z-10">
-                      {label}
-                    </span>
-                    <div className="absolute left-[calc(100%+10px)] px-3 py-1.5 rounded-xl
-                                    backdrop-blur-[20px] bg-white/15 border border-white/25
-                                    shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)]
-                                    text-white text-[10px] font-bold uppercase tracking-wider
-                                    opacity-0 group-hover:opacity-100 pointer-events-none
-                                    transition-opacity whitespace-nowrap z-50">
-                      {label}
-                    </div>
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </div>
-        </nav>
-
-        {/* ── FOOTER ── */}
-        <div className="relative z-10 p-4 border-t border-white/10 flex flex-col items-center gap-2">
-          <div className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl
-                          bg-white/5 border border-white/10
-                          shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" />
-            <span className="text-[7px] font-bold text-white/30 uppercase tracking-tighter">A.U.R.O.R.A</span>
-          </div>
+        <div className="mt-6 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
+          <h1 className="font-roboto-condensed text-[10px] font-black tracking-[0.8em] text-cyan-500 uppercase italic">
+            AURORA
+          </h1>
         </div>
-      </motion.aside>
+      </div>
 
-      {/* ─── MOBILE BOTTOM NAV ─── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100]">
-        <nav className="relative overflow-hidden rounded-t-[2rem]
-                        backdrop-blur-[35px] saturate-[2.2]
-                        bg-white/[0.08] dark:bg-black/20
-                        border-t border-l border-r border-white/15
-                        shadow-[0_-4px_30px_rgba(0,0,0,0.12),inset_0_0_20px_rgba(255,255,255,0.06)]
-                        flex items-center justify-around px-2 h-16">
-          <div className="absolute -top-[200%] -left-[50%] w-[200%] h-[200%]
-                          bg-gradient-to-br from-white/10 via-transparent to-transparent
-                          rotate-12 pointer-events-none" />
-          {activeNavItems.slice(0, 5).map(({ path, icon: Icon, end }) => (
-            <NavLink key={path} to={path} end={end}
+      {/* NAVIGATION - MODULAR BLOCKS */}
+      <nav className="flex-1 px-3 py-6 space-y-2 cyber-scroll overflow-y-auto overflow-x-hidden">
+        
+        {/* RETURN / EXIT MODULE - HIGH CONTRAST */}
+        <button
+          onClick={() => hostname ? navigate('/clients') : navigate('/')}
+          className="relative flex items-center w-full h-12 mb-10 rounded-xl overflow-hidden group/btn transition-all active:scale-95"
+        >
+          <div className="absolute inset-0 bg-white group-hover/btn:bg-cyan-400 transition-colors" />
+          <div className="relative flex items-center justify-center group-hover:justify-start gap-4 w-full px-4 text-[#020617]">
+            <ChevronLeft className="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden group-hover:block font-roboto-condensed text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+              {hostname ? "UPLINK_EXIT" : "SYSTEM_HOME"}
+            </span>
+          </div>
+        </button>
+
+        <div className="space-y-1">
+          {activeNavItems.map(({ path, icon: Icon, label, end }) => (
+            <NavLink
+              key={path}
+              to={path}
+              end={end}
               className={({ isActive }) => `
-                relative flex flex-col items-center justify-center p-3 rounded-xl transition-all
-                ${isActive
-                  ? "text-white bg-white/15 border border-white/20 shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)]"
-                  : "text-white/35 hover:text-white/60"}
+                relative flex items-center h-14 rounded-xl transition-all duration-300 group/link
+                ${isActive 
+                  ? "bg-white/5 border border-white/10" 
+                  : "hover:bg-white/[0.02] border border-transparent"
+                }
               `}
             >
-              {({ isActive }) => (
-                <>
-                  <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 1.8} />
-                  {isActive && (
-                    <motion.div layoutId="bubble-mobile"
-                      className="absolute -top-[1px] inset-x-2 h-[2px] rounded-full
-                                 bg-gradient-to-r from-transparent via-white/70 to-transparent
-                                 shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
-                  )}
-                </>
-              )}
+              {/* ACTIVE INDICATOR LINE */}
+              <NavLink 
+                to={path} 
+                className={({ isActive }) => `absolute left-0 w-1 h-6 rounded-r-full transition-all duration-500 ${isActive ? 'bg-cyan-500' : 'bg-transparent'}`} 
+              />
+              
+              <div className="flex items-center justify-center group-hover:justify-start gap-5 w-full px-5">
+                <Icon className={`w-5 h-5 shrink-0 transition-all duration-500 group-hover/link:text-cyan-400 ${location.pathname === path ? 'text-cyan-400' : 'text-gray-500'}`} />
+                <span className={`hidden group-hover:block font-roboto-condensed text-[11px] font-bold uppercase tracking-[0.2em] whitespace-nowrap transition-colors ${location.pathname === path ? 'text-white' : 'text-gray-500 group-hover/link:text-gray-300'}`}>
+                  {label}
+                </span>
+              </div>
+
+              {/* TACTICAL HOVER GLOW */}
+              <div className="absolute inset-0 bg-cyan-500/0 group-hover/link:bg-cyan-500/[0.03] transition-colors pointer-events-none" />
             </NavLink>
           ))}
-        </nav>
+        </div>
+      </nav>
+
+      {/* FOOTER STATUS - SYSTEM TELEMETRY LOOK */}
+      <div className="p-3 border-t border-white/5 bg-black/20">
+        <div className="flex flex-col items-center group-hover:items-start p-3 rounded-xl border border-white/5 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <div className="absolute w-4 h-4 rounded-full border border-green-500/50 animate-ping" />
+            </div>
+            <span className="hidden group-hover:block font-roboto-condensed text-[9px] font-black uppercase text-green-500 tracking-[0.2em]">
+              Link_Established
+            </span>
+          </div>
+          
+          <div className="hidden group-hover:block mt-4 space-y-2 w-full">
+            <div className="flex items-center justify-between text-[8px] font-jetbrains text-gray-600 uppercase">
+              <span>Node_ID</span>
+              <span className="text-gray-400">{hostname ? hostname.slice(0, 8) : "ROOT"}</span>
+            </div>
+            <div className="h-[1px] w-full bg-white/5" />
+            <div className="flex items-center justify-between text-[8px] font-jetbrains text-gray-600 uppercase">
+              <span>Latency</span>
+              <span className="text-cyan-500">12ms</span>
+            </div>
+          </div>
+        </div>
       </div>
-    </>
+    </motion.aside>
   );
 };
 
 export default Sidebar;
-
-
-
-
-                  // <button
-                  //   onClick={() => hostname ? navigate('/clients') : navigate('/')}
-                  //   className="flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-200
-                  //              bg-white/5 border border-white/10
-                  //              text-white/30 hover:text-white/80
-                  //              hover:bg-white/10 hover:border-white/20
-                  //              hover:shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)]"
-                  // >
-                  //   <ChevronLeft size={18} strokeWidth={2.5} />
-                  // </button>

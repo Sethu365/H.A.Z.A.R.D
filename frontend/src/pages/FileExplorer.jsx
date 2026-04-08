@@ -1,339 +1,293 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { useParams, useOutletContext } from "react-router-dom"; // Added useOutletContext
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Folder, File, HardDrive, Download, Eye, Terminal,
-  X, RefreshCw, Loader2, ChevronRight, Binary,
-  ArrowLeft, Search, SortAsc, SortDesc, Copy, Check,
-  FileText, FileImage, FileCode, FileArchive, Database,
-  Shield, Grid3X3, List, CheckSquare, Square,
-  Home, BarChart2, Zap, Lock,
-  ChevronDown, Star, Clock, Filter,
-  Maximize2, Minimize2, Layers
+import { 
+  Folder, File, HardDrive, Download, Eye, Terminal, 
+  Info, X, RefreshCw, Loader2, ChevronRight, Binary
 } from "lucide-react";
+import Topbar from "../components/Topbar";
 
 const API_BASE = "http://172.24.16.81:8001/client";
 
-// ... [Keep helpers, formatSize, formatDate, getFileType, getFileIcon exactly as they were] ...
-
-const parseBreadcrumbs = (path) => {
-  if (!path) return [{ label:"root", path:"/" }];
-  const parts = path.replace(/\/+$/, "").split("/").filter(Boolean);
-  return [{ label:"root", path:"/" }, ...parts.map((p, i) => ({
-    label: p, path: "/" + parts.slice(0, i + 1).join("/"),
-  }))];
-};
-
-const adaptivePoll = (fetchFn, onResult, onTimeout) => {
-  let attempts = 0;
-  let timer;
-  const tick = async () => {
-    const result = await fetchFn();
-    attempts++;
-    if (result !== null && result !== undefined) { onResult(result); return; }
-    if (attempts >= 25) { onTimeout?.(); return; }
-    timer = setTimeout(tick, attempts < 5 ? 600 : 1500);
-  };
-  timer = setTimeout(tick, 600);
-  return () => clearTimeout(timer);
-};
-
-const NavBtn = ({ children, onClick, disabled, title, active }) => (
-  <button onClick={onClick} disabled={disabled} title={title}
-    className={`p-2 rounded-lg border transition-all active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed
-      ${active
-        ? "bg-cyan-500/20 border-cyan-500/30 text-cyan-400"
-        : "bg-white/[0.04] border-white/[0.07] text-gray-500 hover:text-white hover:bg-white/[0.08] hover:border-white/15"}`}>
-    {children}
-  </button>
-);
-
 const FileExplorer = ({ setLoading, setError }) => {
   const { hostname } = useParams();
-  
-  // 1. Neural Link: Layout Context
-  const context = useOutletContext();
-  const setHeaderData = context?.setHeaderData;
-
-  const [pathHistory,  setPathHistory]  = useState(["/"]);
-  const [historyIndex, setHistoryIndex] = useState(0);
-  const currentPath = pathHistory[historyIndex] ?? "/";
-
-  const [items,        setItems]        = useState([]);
+  const [currentPath, setCurrentPath] = useState("/");
+  const [items, setItems] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
-  const [downloading,  setDownloading]  = useState(false);
-  const [online,       setOnline]       = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileContent, setFileContent] = useState("");
+  const [inspecting, setInspecting] = useState(false);
 
-  const [selectedFile,     setSelectedFile]     = useState(null);
-  const [fileContent,      setFileContent]      = useState("");
-  const [inspecting,       setInspecting]       = useState(false);
-  const [lineWrap,         setLineWrap]         = useState(true);
-  const [viewerFullscreen, setViewerFullscreen] = useState(false);
+  const formatSize = (bytes) => {
+    if (!bytes || bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
-  const [search,       setSearch]       = useState("");
-  const [sortField,    setSortField]    = useState("name");
-  const [sortDir,      setSortDir]      = useState("asc");
-  const [viewMode,     setViewMode]     = useState("list");
-  const [selected,     setSelected]     = useState(new Set());
-  const [showStats,    setShowStats]    = useState(false);
-  const [typeFilter,   setTypeFilter]   = useState("all");
-  const [showTypeMenu, setShowTypeMenu] = useState(false);
-  const [showRecent,   setShowRecent]   = useState(false);
-  const [editingPath,  setEditingPath]  = useState(false);
-  const [pathInput,    setPathInput]    = useState("");
-
-  const [favorites, setFavorites] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("fe_favs")   || "[]"); } catch { return []; }
-  });
-  const [recentPaths, setRecentPaths] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("fe_recent") || "[]"); } catch { return []; }
-  });
-
-  const [copiedPath,    copyPath]    = useState(false); // Simplified for integration
-  const [copiedContent, copyContent] = useState(false);
-
-  const cancelPollRef = useRef(null);
-  const searchRef     = useRef(null);
-
-  // 2. Sync Topbar Title
-  useEffect(() => {
-    if (setHeaderData) {
-      setHeaderData({
-        name: "Filesystem",
-        desc: `Remote_Explorer // Node: ${hostname}`
-      });
-    }
-  }, [hostname, setHeaderData]);
-
-  // Keyboard and Poll Cleanup
-  useEffect(() => () => cancelPollRef.current?.(), []);
-  
-  const pollResult = useCallback(async (commandId) => {
+  const pollResult = async (commandId) => {
     try {
       const res = await fetch(`${API_BASE}/command-result/${commandId}`);
-      if (!res.ok) return null;
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0 && data[0].output) {
-        try { return JSON.parse(data[0].output); } catch { return data[0].output; }
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const latest = data[0];
+          if (latest.output) {
+            try { return JSON.parse(latest.output); } catch (e) { return latest.output; }
+          }
+        }
       }
-    } catch {}
+    } catch (err) { console.error("Poll Error:", err); }
     return null;
-  }, []);
+  };
 
-  const pushRecent = useCallback((path) => {
-    setRecentPaths(prev => {
-      const next = [path, ...prev.filter(p => p !== path)].slice(0, 12);
-      localStorage.setItem("fe_recent", JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
-  const navigateTo = useCallback(async (path, isInitial = false) => {
-    if (!path) return;
-    cancelPollRef.current?.();
-    if (isInitial) { setLoading?.(true); setError?.(null); }
-    setLocalLoading(true); setSelected(new Set()); setSearch(""); setOnline(true);
+  const fetchDirectory = useCallback(async (path, isInitial = false) => {
+    if (isInitial) { setLoading(true); setError(null); }
+    setLocalLoading(true);
     try {
       const res = await fetch(`${API_BASE}/filesystem/${hostname}`, {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ path }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path })
       });
       const cmd = await res.json();
-      cancelPollRef.current = adaptivePoll(
-        () => pollResult(cmd.command_id),
-        (result) => {
-          setOnline(true);
+      
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        const result = await pollResult(cmd.command_id);
+        if (result || attempts > 15) {
+          clearInterval(interval);
           if (result?.items) {
             setItems(result.items);
-            const resolved = result.current_path || path;
-            pushRecent(resolved);
-            setPathHistory(prev => {
-              const trimmed = prev.slice(0, historyIndex + 1);
-              if (trimmed[trimmed.length - 1] === resolved) return trimmed;
-              return [...trimmed, resolved];
-            });
-            setHistoryIndex(prev => prev + 1);
+            setCurrentPath(result.current_path);
           }
-          if (isInitial) setLoading?.(false);
+          if (isInitial) setLoading(false);
           setLocalLoading(false);
-        },
-        () => { setOnline(false); if (isInitial) setLoading?.(false); setLocalLoading(false); }
-      );
-    } catch {
-      setOnline(false);
-      if (isInitial) setLoading?.(false);
-      setLocalLoading(false);
+        }
+        attempts++;
+      }, 2000);
+    } catch (err) { 
+        if (isInitial) setLoading(false);
+        setLocalLoading(false); 
     }
-  }, [hostname, historyIndex, pollResult, pushRecent, setLoading, setError]);
+  }, [hostname, setLoading, setError]);
 
-  useEffect(() => { navigateTo("/", true); }, []);
-
-  const refreshPath = (path) => navigateTo(path);
-
-  const viewFile = useCallback(async (item) => {
-    setSelectedFile(item); setInspecting(true);
-    setFileContent("// ▶ SYNCHRONIZING REMOTE BUFFER...");
+  const viewFile = async (item) => {
+    setSelectedFile(item);
+    setInspecting(true);
+    setFileContent(" > SYNCHRONIZING REMOTE BUFFER...");
     try {
       const res = await fetch(`${API_BASE}/file-content/${hostname}`, {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ path: item.path }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: item.path })
       });
       const cmd = await res.json();
-      adaptivePoll(
-        () => pollResult(cmd.command_id),
-        (result) => setFileContent(result?.content || (typeof result === "string" ? result : "// [BINARY OR ENCRYPTED]")),
-        () => setFileContent("!! UPLINK TIMEOUT")
-      );
-    } catch { setFileContent("!! HANDSHAKE FAILED"); }
-  }, [hostname, pollResult]);
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        const result = await pollResult(cmd.command_id);
+        if (result || attempts > 15) {
+          clearInterval(interval);
+          setFileContent(result?.content || (typeof result === 'string' ? result : "// [ENCRYPTED_OR_BINARY_PAYLOAD_HIDDEN]"));
+        }
+        attempts++;
+      }, 2000);
+    } catch (err) { setFileContent("!! UPLINK_HANDSHAKE_FAILED"); }
+  };
 
-  const handleDownload = useCallback(async (fileItem = selectedFile) => {
-    if (!fileItem) return;
+  const handleDownload = async () => {
+    if (!selectedFile) return;
     setDownloading(true);
     try {
       const res = await fetch(`${API_BASE}/file-content/${hostname}`, {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ path: fileItem.path }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: selectedFile.path })
       });
       const cmd = await res.json();
-      adaptivePoll(
-        () => pollResult(cmd.command_id),
-        (result) => {
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        const result = await pollResult(cmd.command_id);
+        if (result || attempts > 20) {
+          clearInterval(interval);
           setDownloading(false);
-          if (!result) return;
-          const blob = new Blob([result.content || result], { type:"application/octet-stream" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a"); a.href = url; a.download = fileItem.name;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-        },
-        () => setDownloading(false)
-      );
-    } catch { setDownloading(false); }
-  }, [hostname, selectedFile, pollResult]);
-
-  const toggleSort = (field) => {
-    if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortField(field); setSortDir("asc"); }
+          if (result) {
+            let blob;
+            if (result.encoding === "base64") {
+              const byteCharacters = atob(result.content);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
+              blob = new Blob([new Uint8Array(byteNumbers)], { type: "application/octet-stream" });
+            } else { blob = new Blob([result.content || result], { type: "application/octet-stream" }); }
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", selectedFile.name);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          }
+        }
+        attempts++;
+      }, 2000);
+    } catch (err) { setDownloading(false); alert("Critical Link Failure."); }
   };
 
-  const processed = useMemo(() => [...items]
-    .filter(item => {
-      const ms = item.name.toLowerCase().includes(search.toLowerCase());
-      const mt = typeFilter === "all" ? true : typeFilter === "dir" ? item.type === "directory" : true;
-      return ms && mt;
-    })
-    .sort((a, b) => {
-      if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
-      return sortDir === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
-    }), [items, search, typeFilter, sortDir]);
-
-  const stats = useMemo(() => ({
-    total: items.length, dirs: items.filter(i => i.type === "directory").length,
-    files: items.filter(i => i.type !== "directory").length,
-    totalSize: items.reduce((a, i) => a + (i.size || 0), 0),
-  }), [items]);
-
-  const breadcrumbs = parseBreadcrumbs(currentPath);
+  useEffect(() => { fetchDirectory("/", true); }, [fetchDirectory]);
 
   return (
-    // FIX 3: Removed pt-24 and h-screen from the main div.
-    // This allows the page to expand and scroll correctly within DashboardLayout.
-    <div className="space-y-4 relative selection:bg-cyan-500/30 font-mono text-[11px]">
-      
-      {/* ── TOOLBAR ── */}
-      <div className="bg-[#0b0f1a] border border-white/[0.06] p-3 rounded-2xl shadow-xl flex flex-col gap-2 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <NavBtn onClick={() => historyIndex > 0 && navigateTo(pathHistory[historyIndex-1])} disabled={historyIndex <= 0}><ArrowLeft size={14} /></NavBtn>
-            <NavBtn onClick={() => navigateTo("/")}><Home size={14} /></NavBtn>
+    <div className="min-h-screen bg-[#020617] text-white font-inter">
+      <Topbar name="Filesystem" desc={`Remote_Explorer :: ${hostname}`} />
+
+      <main className="pt-24 pb-20 px-4 md:px-8 max-w-7xl mx-auto flex flex-col gap-6 h-[calc(100vh-20px)] lg:h-screen">
+        
+        {/* PATH CONTROLLER */}
+        <div className="bg-white/[0.02] border border-white/5 p-4 md:p-6 rounded-[2rem] backdrop-blur-md shadow-2xl flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <HardDrive className="text-cyan-500 animate-pulse" size={20} />
+              <h3 className="font-roboto-condensed text-xs md:text-sm font-black uppercase tracking-[0.3em]">Node_Stream</h3>
+            </div>
+            <button 
+              onClick={() => fetchDirectory(currentPath)} 
+              className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-cyan-500/10 hover:border-cyan-500/30 transition-all active:scale-95"
+            >
+              <RefreshCw className={localLoading ? 'animate-spin text-cyan-400' : 'text-gray-400'} size={18} />
+            </button>
           </div>
 
-          <div className="flex-1 relative">
-            <div onClick={() => { setPathInput(currentPath); setEditingPath(true); }}
-              className="flex items-center gap-2 bg-black/40 border border-white/[0.07] hover:border-white/20 rounded-xl px-3 py-2 cursor-text transition-all">
-              <Terminal size={11} className="text-gray-700 shrink-0" />
-              <span className="text-cyan-400 tracking-widest uppercase font-bold truncate flex-1">{currentPath}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <div className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-[8px] font-bold uppercase ${online ? "border-green-500/20 text-green-500" : "border-red-500/20 text-red-500"}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${online ? "bg-green-500" : "bg-red-500"}`} />
-              <span>{online ? "LIVE" : "OFFLINE"}</span>
-            </div>
-            <NavBtn onClick={() => refreshPath(currentPath)}><RefreshCw size={14} className={localLoading ? "animate-spin text-cyan-400" : ""} /></NavBtn>
+          <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl px-5 py-3 focus-within:border-cyan-500/50 transition-all">
+            <Terminal size={14} className="text-gray-600" />
+            <input 
+              value={currentPath}
+              onChange={(e) => setCurrentPath(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchDirectory(currentPath)}
+              className="font-jetbrains bg-transparent border-none outline-none text-cyan-400 text-xs md:text-sm w-full font-bold uppercase tracking-widest"
+            />
           </div>
         </div>
 
-        <div className="flex items-center gap-0.5 flex-wrap px-1">
-          {breadcrumbs.map((crumb, i) => (
-            <React.Fragment key={crumb.path}>
-              <button onClick={() => navigateTo(crumb.path)}
-                className={`text-[8px] font-black uppercase px-2 py-1 rounded-lg hover:bg-white/5 ${i === breadcrumbs.length-1 ? "text-cyan-400" : "text-gray-600"}`}>
-                {crumb.label}
-              </button>
-              {i < breadcrumbs.length-1 && <ChevronRight size={8} className="text-gray-800" />}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-
-      {/* ── FILE LISTING ── */}
-      <div className="bg-[#080c15] border border-white/[0.05] rounded-2xl overflow-hidden flex flex-col min-h-[500px]">
-        <div className="overflow-auto flex-1">
-          <table className="w-full text-left">
-            <thead className="sticky top-0 bg-[#080c15] z-20 border-b border-white/[0.04]">
-              <tr className="text-[8px] font-black uppercase text-gray-700 tracking-widest">
-                <th className="px-5 py-3">Name</th>
-                <th className="px-3 py-3 hidden md:table-cell">Type</th>
-                <th className="px-3 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.025]">
-              {items.map((item, i) => (
-                <tr key={i} onClick={() => item.type === "directory" ? navigateTo(item.path) : viewFile(item)} 
-                    className="hover:bg-white/[0.018] cursor-pointer group">
-                  <td className="px-5 py-2.5">
-                    <div className="flex items-center gap-3">
-                      {item.type === "directory" ? <Folder size={14} className="text-cyan-400" /> : <File size={14} className="text-gray-500" />}
-                      <span className={item.type === "directory" ? "text-white" : "text-gray-400"}>{item.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 hidden md:table-cell text-gray-600 uppercase text-[9px]">{item.type}</td>
-                  <td className="px-3 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {item.type !== "directory" && <button onClick={(e) => { e.stopPropagation(); handleDownload(item); }} className="p-1 hover:text-cyan-400"><Download size={14}/></button>}
-                    </div>
-                  </td>
+        {/* RESOURCE TABLE */}
+        <div className="flex-1 bg-white/[0.01] border border-white/5 rounded-[2.5rem] overflow-hidden backdrop-blur-md shadow-inner flex flex-col">
+          <div className="overflow-x-auto cyber-scroll flex-1">
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-[#0a0c14] z-20 shadow-xl">
+                <tr className="font-roboto-condensed text-[10px] font-black uppercase text-gray-500 tracking-[0.2em] border-b border-white/5">
+                  <th className="px-8 py-5">Asset_Identity</th>
+                  <th className="px-6 py-5 hidden sm:table-cell">Size_Buffer</th>
+                  <th className="px-6 py-5 text-right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {items.map((item, i) => {
+                  const isDir = item.type === "directory";
+                  return (
+                    <tr key={i} className="group hover:bg-cyan-500/[0.03] transition-all">
+                      <td className="px-8 py-4">
+                        <div 
+                          className="flex items-center gap-4 cursor-pointer"
+                          onClick={() => isDir ? fetchDirectory(item.path) : viewFile(item)}
+                        >
+                          {isDir ? (
+                             <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-500"><Folder size={18} /></div>
+                          ) : (
+                             <div className="p-2 bg-white/5 rounded-lg text-gray-500"><File size={18} /></div>
+                          )}
+                          <div className="min-w-0">
+                            <p className={`font-inter text-sm font-extrabold truncate uppercase tracking-tight ${isDir ? 'text-white' : 'text-gray-300'}`}>
+                              {item.name}
+                            </p>
+                            <p className="font-roboto-condensed text-[8px] font-black text-gray-600 uppercase tracking-widest sm:hidden">
+                                {formatSize(item.size)} // {item.type}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 hidden sm:table-cell">
+                        <span className="font-jetbrains text-[10px] font-bold text-gray-500 uppercase">
+                          {item.type} // {formatSize(item.size)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {!isDir && (
+                          <button onClick={() => viewFile(item)} className="p-2.5 bg-white/5 hover:bg-white text-gray-500 hover:text-black rounded-xl transition-all shadow-xl">
+                            <Eye size={16} />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </main>
 
-      {/* ── VIEWER MODAL ── */}
+      {/* INSPECTION MODAL */}
       <AnimatePresence>
         {inspecting && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
-              className="bg-[#060a12] border border-white/10 w-full max-w-5xl h-[80vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl">
-              <div className="px-5 py-3 border-b border-white/10 flex justify-between items-center bg-white/5">
-                <span className="text-white font-bold uppercase">{selectedFile?.name}</span>
-                <button onClick={() => setInspecting(false)} className="text-gray-500 hover:text-white"><X size={20}/></button>
+          <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center p-0 lg:p-8 bg-black/80 backdrop-blur-md">
+            <div className="absolute inset-0" onClick={() => setInspecting(false)} />
+            <motion.div 
+              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              className="w-full max-w-5xl h-[85vh] bg-[#05070a] border-t lg:border border-white/10 flex flex-col rounded-t-[2.5rem] lg:rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,1)] relative z-[110] overflow-hidden"
+            >
+              <div className="p-6 md:p-8 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="p-4 bg-cyan-500/10 rounded-2xl border border-cyan-500/30 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+                    <Binary size={24} />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="font-inter text-white font-black text-xl uppercase tracking-tighter truncate md:w-96">{selectedFile?.name}</h2>
+                    <p className="font-jetbrains text-[9px] text-gray-500 font-bold uppercase tracking-widest truncate">{selectedFile?.path}</p>
+                  </div>
+                </div>
+                <button onClick={() => setInspecting(false)} className="p-3 bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-500 rounded-full transition-all active:scale-90">
+                  <X size={24} />
+                </button>
               </div>
-              <div className="flex-1 overflow-auto p-6 bg-black/40">
-                <pre className="text-cyan-400/80 text-[10px] leading-relaxed whitespace-pre-wrap">{fileContent}</pre>
+
+              <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 cyber-scroll">
+                <div className="bg-black/60 rounded-[2rem] border border-white/5 shadow-2xl overflow-hidden relative">
+                  <div className="flex items-center justify-between bg-white/[0.02] px-6 py-4 border-b border-white/5 font-roboto-condensed">
+                    <div className="flex items-center gap-2 text-gray-500 text-[9px] font-extrabold uppercase tracking-widest">
+                      <Terminal size={12} /> Buffer_Readout
+                    </div>
+                    <span className="text-[9px] font-bold text-cyan-500/60 uppercase">Vol: {formatSize(selectedFile?.size)}</span>
+                  </div>
+                  <div className="p-6 md:p-8">
+                     <pre className="font-jetbrains text-xs md:text-sm text-gray-400 leading-relaxed whitespace-pre-wrap selection:bg-cyan-500/40">
+                       {fileContent}
+                     </pre>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-roboto-condensed">
+                   <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center gap-4">
+                      <div className="p-3 bg-white/5 rounded-xl text-cyan-500"><Info size={20} /></div>
+                      <div>
+                        <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Protocol</p>
+                        <p className="font-inter text-xs text-gray-200 font-extrabold uppercase">A.U.R.O.R.A Secure Stream</p>
+                      </div>
+                   </div>
+                   <button 
+                    disabled={downloading}
+                    onClick={handleDownload}
+                    className="p-6 rounded-[1.5rem] bg-white text-black font-black uppercase text-xs flex items-center justify-center gap-3 hover:bg-cyan-400 transition-all group active:scale-95 disabled:bg-gray-800 disabled:text-gray-600"
+                   >
+                      {downloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                      {downloading ? "Reconstructing..." : "Extract Asset"}
+                   </button>
+                </div>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
-      <style>{`
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #22d3ee22; border-radius: 4px; }
-      `}</style>
     </div>
   );
 };

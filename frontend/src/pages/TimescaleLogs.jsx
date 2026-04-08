@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,34 +10,20 @@ import {
   ResponsiveContainer,
   CartesianGrid
 } from "recharts";
-import { Terminal, Copy, ListFilter, Activity } from "lucide-react";
-import { useOutletContext } from "react-router-dom"; // 1. Added useOutletContext
+import { Database, Terminal, Copy, ChevronRight, ListFilter, Activity } from "lucide-react";
+import Topbar from "../components/Topbar";
 
 const API_BASE = "http://172.24.16.81:8001";
 
 const TimescaleLogs = () => {
-  // 2. Neural Link: Safe Context Access
-  const context = useOutletContext();
-  const setHeaderData = context?.setHeaderData;
-
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false); 
+  const [hasLoaded, setHasLoaded] = useState(false); // Fix for blinking
   const [limit, setLimit] = useState(50);
   const [offset, setOffset] = useState(0);
   const [expandedRow, setExpandedRow] = useState(null);
 
-  // 3. Sync Topbar Identity via Layout Context
-  useEffect(() => {
-    if (setHeaderData) {
-      setHeaderData({
-        name: "Uplink Stream",
-        desc: "TimescaleDB_Forensic_Telemetery // SQL Log Aggregator"
-      });
-    }
-  }, [setHeaderData]);
-
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = async () => {
     try {
       if (!hasLoaded) setLoading(true);
       const res = await axios.get(
@@ -50,11 +36,11 @@ const TimescaleLogs = () => {
     } finally {
       setLoading(false);
     }
-  }, [limit, offset, hasLoaded]);
+  };
 
   useEffect(() => {
     fetchLogs();
-  }, [fetchLogs]);
+  }, [limit, offset]);
 
   const rateData = (logs) => {
     const buckets = {};
@@ -73,144 +59,146 @@ const TimescaleLogs = () => {
   const chartData = rateData(logs);
 
   return (
-    // 4. Removed min-h-screen/pt-24 (handled by layout)
-    <div className="space-y-6 relative selection:bg-cyan-500/30">
-      
-      {/* EVENT RATE MONITOR */}
-      <motion.div 
-        layout
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 backdrop-blur-md shadow-2xl"
-      >
-        <div className="flex items-center gap-3 mb-6">
-          <Activity className="w-5 h-5 text-cyan-400" />
-          <h3 className="font-roboto-condensed text-xs md:text-sm font-black uppercase tracking-[0.2em] text-gray-100">Ingestion_Velocity</h3>
+    <div className="min-h-screen bg-[#020617] text-white font-inter">
+      <Topbar name="Uplink Stream" desc="TimescaleDB_Forensic_Telemetery" />
+
+      <main className="pt-24 pb-20 px-4 md:px-8 space-y-6 max-w-7xl mx-auto overflow-x-hidden">
+        
+        {/* EVENT RATE MONITOR */}
+        <motion.div 
+          layout
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 backdrop-blur-md shadow-2xl"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <Activity className="w-5 h-5 text-cyan-400" />
+            <h3 className="font-roboto-condensed text-xs md:text-sm font-black uppercase tracking-[0.2em] text-gray-100">Ingestion_Velocity</h3>
+          </div>
+
+          <div className="h-48 md:h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" vertical={false} opacity={0.05} />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fill: "#6b7280", fontSize: 9, fontWeight: 700, fontFamily: 'Roboto Condensed' }}
+                  tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  axisLine={false} tickLine={false}
+                />
+                <YAxis tick={{ fill: "#6b7280", fontSize: 9, fontWeight: 700, fontFamily: 'Roboto Condensed' }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#020617", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "10px", fontFamily: 'Roboto Condensed' }}
+                  labelFormatter={(l) => `Time: ${new Date(l).toLocaleTimeString()}`}
+                />
+                <Line type="monotone" dataKey="count" stroke="#22d3ee" strokeWidth={2} dot={false} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* LOG CONTROLS */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/[0.02] p-4 rounded-2xl border border-white/5 font-roboto-condensed">
+          <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-gray-500">
+            <ListFilter size={14} />
+            <span>Buffer_Size:</span>
+            <select
+              value={limit}
+              onChange={(e) => { setOffset(0); setLimit(Number(e.target.value)); }}
+              className="bg-[#0a0c14] border border-white/10 rounded-lg px-3 py-1.5 text-cyan-400 outline-none focus:border-cyan-500 transition-all font-inter"
+            >
+              {[25, 50, 100].map((v) => <option key={v} value={v}>{v} Rows</option>)}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button 
+              disabled={offset === 0} 
+              onClick={() => setOffset(Math.max(0, offset - limit))}
+              className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase disabled:opacity-20 hover:bg-white/10 transition-all"
+            >
+              Prev_Sector
+            </button>
+            <button 
+              onClick={() => setOffset(offset + limit)}
+              className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase hover:bg-white/10 transition-all"
+            >
+              Next_Sector
+            </button>
+          </div>
         </div>
 
-        <div className="h-48 md:h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" vertical={false} opacity={0.05} />
-              <XAxis
-                dataKey="time"
-                tick={{ fill: "#6b7280", fontSize: 9, fontWeight: 700, fontFamily: 'Roboto Condensed' }}
-                tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                axisLine={false} tickLine={false}
-              />
-              <YAxis tick={{ fill: "#6b7280", fontSize: 9, fontWeight: 700, fontFamily: 'Roboto Condensed' }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ backgroundColor: "#020617", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "10px", fontFamily: 'Roboto Condensed' }}
-                labelFormatter={(l) => `Time: ${new Date(l).toLocaleTimeString()}`}
-              />
-              <Line type="monotone" dataKey="count" stroke="#22d3ee" strokeWidth={2} dot={false} isAnimationActive={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
+        {/* LOG REGISTRY TABLE - Increased Body Font Size */}
+        <motion.div 
+          layout
+          className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden backdrop-blur-md shadow-2xl"
+        >
+          <div className="overflow-x-auto cyber-scroll">
+            <table className="w-full text-left">
+              <thead className="bg-white/[0.02] border-b border-white/5 font-roboto-condensed text-[11px] font-black uppercase text-gray-500 tracking-[0.3em]">
+                <tr>
+                  <th className="px-6 py-5">Temporal_Stamp</th>
+                  <th className="px-6 py-5 text-center">Node_Source</th>
+                  <th className="px-6 py-5 text-right">Raw_Telemetry</th>
+                </tr>
+              </thead>
+              {/* Table Body increased to text-[13px] */}
+              <tbody className="divide-y divide-white/5 font-jetbrains text-[13px]">
+                {loading && !hasLoaded ? (
+                  <tr><td colSpan={3} className="font-roboto-condensed p-10 text-center text-gray-600 animate-pulse uppercase tracking-widest">Syncing Log Registry...</td></tr>
+                ) : logs.map((row, idx) => (
+                  <React.Fragment key={idx}>
+                    <tr className="hover:bg-white/[0.01] transition-colors group">
+                      <td className="px-6 py-5 text-gray-400">
+                        {row.event_time ? new Date(row.event_time).toLocaleString() : "---"}
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="px-4 py-1.5 rounded-full bg-cyan-500/5 border border-cyan-500/20 text-cyan-400 font-bold uppercase tracking-tighter">
+                          {row.hostname || "UNKNOWN_NODE"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-right font-roboto-condensed">
+                        <button
+                          onClick={() => setExpandedRow(expandedRow === idx ? null : idx)}
+                          className="flex items-center gap-2 ml-auto text-gray-500 hover:text-white transition-colors group"
+                        >
+                          <span className="text-[11px] font-black uppercase tracking-widest">{expandedRow === idx ? "Collapse" : "Decode"}</span>
+                          <Terminal size={14} className="group-hover:rotate-12 transition-transform" />
+                        </button>
+                      </td>
+                    </tr>
 
-      {/* LOG CONTROLS */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/[0.02] p-4 rounded-2xl border border-white/5 font-roboto-condensed">
-        <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-gray-500">
-          <ListFilter size={14} />
-          <span>Buffer_Size:</span>
-          <select
-            value={limit}
-            onChange={(e) => { setOffset(0); setLimit(Number(e.target.value)); }}
-            className="bg-[#0a0c14] border border-white/10 rounded-lg px-3 py-1.5 text-cyan-400 outline-none focus:border-cyan-500 transition-all font-inter"
-          >
-            {[25, 50, 100].map((v) => <option key={v} value={v}>{v} Rows</option>)}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button 
-            disabled={offset === 0} 
-            onClick={() => setOffset(Math.max(0, offset - limit))}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase disabled:opacity-20 hover:bg-white/10 transition-all text-white"
-          >
-            Prev_Sector
-          </button>
-          <button 
-            onClick={() => setOffset(offset + limit)}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-black uppercase hover:bg-white/10 transition-all text-white"
-          >
-            Next_Sector
-          </button>
-        </div>
-      </div>
-
-      {/* REGISTRY TABLE */}
-      <motion.div 
-        layout
-        className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] overflow-hidden backdrop-blur-md shadow-2xl"
-      >
-        <div className="overflow-x-auto cyber-scroll">
-          <table className="w-full text-left">
-            <thead className="bg-white/[0.02] border-b border-white/5 font-roboto-condensed text-[11px] font-black uppercase text-gray-500 tracking-[0.3em]">
-              <tr>
-                <th className="px-6 py-5">Temporal_Stamp</th>
-                <th className="px-6 py-5 text-center">Node_Source</th>
-                <th className="px-6 py-5 text-right">Raw_Telemetry</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 font-jetbrains text-[13px]">
-              {loading && !hasLoaded ? (
-                <tr><td colSpan={3} className="font-roboto-condensed p-10 text-center text-gray-600 animate-pulse uppercase tracking-widest">Syncing Log Registry...</td></tr>
-              ) : logs.length === 0 ? (
-                <tr><td colSpan={3} className="p-10 text-center text-gray-700 uppercase tracking-widest">Registry_Empty</td></tr>
-              ) : logs.map((row, idx) => (
-                <React.Fragment key={idx}>
-                  <tr className="hover:bg-white/[0.01] transition-colors group">
-                    <td className="px-6 py-5 text-gray-400">
-                      {row.event_time ? new Date(row.event_time).toLocaleString() : "---"}
-                    </td>
-                    <td className="px-6 py-5 text-center">
-                      <span className="px-4 py-1.5 rounded-full bg-cyan-500/5 border border-cyan-500/20 text-cyan-400 font-bold uppercase tracking-tighter">
-                        {row.hostname || "UNKNOWN_NODE"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 text-right font-roboto-condensed text-white">
-                      <button
-                        onClick={() => setExpandedRow(expandedRow === idx ? null : idx)}
-                        className="flex items-center gap-2 ml-auto text-gray-500 hover:text-white transition-colors group"
-                      >
-                        <span className="text-[11px] font-black uppercase tracking-widest">{expandedRow === idx ? "Collapse" : "Decode"}</span>
-                        <Terminal size={14} className="group-hover:rotate-12 transition-transform" />
-                      </button>
-                    </td>
-                  </tr>
-
-                  <AnimatePresence>
-                    {expandedRow === idx && (
-                      <tr>
-                        <td colSpan={3} className="bg-black/40 p-0 overflow-hidden">
-                          <motion.div 
-                            initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
-                            className="p-8 border-y border-cyan-500/10"
-                          >
-                            <div className="flex items-center justify-between mb-4 font-roboto-condensed">
-                              <span className="text-[11px] font-black uppercase tracking-widest text-cyan-500/60">Forensic_Data_Packet</span>
-                              <button
-                                onClick={() => navigator.clipboard.writeText(JSON.stringify(row.original_payload, null, 2))}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 rounded-lg text-[10px] font-black text-cyan-400 hover:bg-cyan-500/20 transition-all uppercase"
-                              >
-                                <Copy size={12} /> Sync to Clipboard
-                              </button>
-                            </div>
-                            <pre className="font-jetbrains text-[12px] text-gray-300 leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-auto cyber-scroll p-6 bg-white/[0.02] rounded-xl border border-white/5">
-                              {JSON.stringify(row.original_payload, null, 2)}
-                            </pre>
-                          </motion.div>
-                        </td>
-                      </tr>
-                    )}
-                  </AnimatePresence>
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
+                    <AnimatePresence>
+                      {expandedRow === idx && (
+                        <tr>
+                          <td colSpan={3} className="bg-black/40 p-0 overflow-hidden">
+                            <motion.div 
+                              initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
+                              className="p-8 border-y border-cyan-500/10"
+                            >
+                              <div className="flex items-center justify-between mb-4 font-roboto-condensed">
+                                <span className="text-[11px] font-black uppercase tracking-widest text-cyan-500/60">Forensic_Data_Packet</span>
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(JSON.stringify(row.original_payload, null, 2))}
+                                  className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 rounded-lg text-[10px] font-black text-cyan-400 hover:bg-cyan-500/20 transition-all uppercase"
+                                >
+                                  <Copy size={12} /> Sync to Clipboard
+                                </button>
+                              </div>
+                              <pre className="font-jetbrains text-[12px] text-gray-300 leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-auto cyber-scroll p-6 bg-white/[0.02] rounded-xl border border-white/5">
+                                {JSON.stringify(row.original_payload, null, 2)}
+                              </pre>
+                            </motion.div>
+                          </td>
+                        </tr>
+                      )}
+                    </AnimatePresence>
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      </main>
     </div>
   );
 };
