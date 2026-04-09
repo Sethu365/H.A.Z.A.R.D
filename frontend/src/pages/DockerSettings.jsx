@@ -3,7 +3,7 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Server, Activity, Terminal, XCircle, ChevronRight, BarChart2, 
-  RefreshCw, ChevronLeft, Power, FileText 
+  RefreshCw, ChevronLeft, Power, FileText, Cpu, Database
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -27,6 +27,13 @@ const DockerSettings = () => {
   const [logs, setLogs] = useState("");
   const [selectedContainer, setSelectedContainer] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const loadData = async () => {
     setIsSyncing(true);
@@ -97,138 +104,106 @@ const DockerSettings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white font-inter selection:bg-cyan-500/30">
+    <div className="min-h-screen bg-[#020617] text-white font-inter selection:bg-cyan-500/30 overflow-x-hidden">
       
-      <main className="pt-12 pb-20 px-6 md:px-12 w-full space-y-8 transition-all duration-500">
+      <main className="pt-4 pb-24 px-0 md:px-12 w-full space-y-4 md:space-y-8 transition-all duration-500">
         
-        {/* HEADER SECTION */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
-          <div className="flex items-center gap-4">
+        {/* REFINED HEADER SECTION - Hidden back button on mobile */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2 px-6 md:px-0 relative">
+          <div className="flex items-center gap-4 flex-1">
+            {/* Desktop-only Back Button */}
             <button 
               onClick={() => navigate(-1)} 
-              className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors border border-white/5"
+              className="hidden md:flex p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-cyan-500/10 transition-all active:scale-90 backdrop-blur-md"
             >
               <ChevronLeft size={20} className="text-cyan-400" />
             </button>
-            <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight text-white">Docker Hub</h1>
-              <p className="font-roboto-condensed text-[10px] font-bold text-cyan-500/60 uppercase tracking-[0.2em]">Virtual_Environment_Management</p>
+            
+            <div className="w-full text-center md:text-left">
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase font-inter leading-none">Docker Hub</h1>
+              <p className="hidden md:block font-roboto-condensed text-[10px] font-bold text-cyan-500/60 uppercase tracking-[0.2em] mt-1">Virtual_Environment_Management</p>
             </div>
-          </div>
-          <div className="flex items-center gap-6 bg-black/40 border border-white/5 py-3 px-6 rounded-2xl">
-            <div className="flex flex-col items-end">
-              <span className="font-roboto-condensed text-[8px] font-bold text-gray-500 uppercase tracking-widest">Runtime_Status</span>
-              <span className="font-jetbrains text-xs font-bold text-green-400 uppercase tracking-tighter">Daemon_Active</span>
-            </div>
-            <div className="w-[1px] h-8 bg-white/10" />
-            <RefreshCw size={16} className={`${isSyncing ? 'animate-spin text-cyan-400' : 'text-gray-700'}`} />
           </div>
         </div>
 
-{/* HUD GRID - Refined Alignment */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-stretch">
-          
-          {/* PERFORMANCE HISTORY - Left side */}
+        {/* PERFORMANCE HUD */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 px-4 md:px-0 items-start">
           <motion.div 
-            initial={{ opacity: 0, y: 10 }} 
-            animate={{ opacity: 1, y: 0 }}
-            className="xl:col-span-8 bg-white/[0.01] border border-white/5 rounded-[2.5rem] p-8 shadow-2xl backdrop-blur-sm flex flex-col"
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="xl:col-span-7 w-full bg-white/[0.02] border border-white/10 rounded-[1.5rem] md:rounded-[2.2rem] p-4 md:p-6 backdrop-blur-xl shadow-2xl flex flex-col relative overflow-hidden"
           >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
-              <div className="flex items-center gap-3 px-2">
-                <BarChart2 className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-roboto-condensed text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-400/80">Cluster_Dynamics</h3>
+             <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+            <div className="flex items-center justify-between mb-4 px-1">
+              <div className="flex items-center gap-2">
+                <BarChart2 className="w-4 h-4 text-cyan-400" />
+                <h3 className="font-roboto-condensed text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400/80">Cluster_Dynamics</h3>
               </div>
-              <div className="font-roboto-condensed flex gap-6 text-[9px] font-bold uppercase tracking-widest text-gray-500">
-                 <span className="flex items-center gap-2">
-                   <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.5)]"/> 
-                   CPU_AGGREGATE
-                 </span>
-                 <span className="flex items-center gap-2">
-                   <div className="w-1.5 h-1.5 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]"/> 
-                   MEM_RESERVATION
-                 </span>
+              <div className="hidden sm:flex gap-4 font-jetbrains text-[8px] font-black uppercase text-gray-500">
+                 <span className="flex items-center gap-2 text-cyan-400"><Cpu size={10} /> CPU</span>
+                 <span className="flex items-center gap-2 text-purple-400"><Database size={10} /> MEM</span>
               </div>
             </div>
-            
-            {/* Using flex-1 here ensures the chart box fills the remaining vertical space of the card */}
-            <div className="flex-1 min-h-[300px] md:min-h-[400px] w-full bg-black/20 rounded-3xl p-4">
+            <div className="h-[200px] md:h-[260px] w-full max-w-2xl mx-auto bg-black/40 rounded-xl p-1 md:p-2 border border-white/5 overflow-hidden">
               <MemoizedTimeline data={timeline} />
             </div>
           </motion.div>
 
-          {/* GAUGES - Right side aligned to Chart height */}
-          <div className="xl:col-span-4 flex flex-col gap-8">
-            <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 flex flex-col items-center justify-center shadow-2xl transition-all hover:border-white/10">
-              <Gauge label="AGGREGATE_CPU" value={aggregate.cpu_percent} />
+          <div className="xl:col-span-5 grid grid-cols-2 gap-4 self-stretch">
+            <div className="bg-white/[0.03] border border-white/10 rounded-[1.5rem] md:rounded-[2.2rem] p-3 md:p-4 flex flex-col items-center justify-center backdrop-blur-xl shadow-lg">
+               <Gauge label="CPU" value={aggregate.cpu_percent} />
             </div>
-            <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 flex flex-col items-center justify-center shadow-2xl transition-all hover:border-white/10">
-              <Gauge label="MEMORY_RESERVATION" value={aggregate.memory_percent} />
+            <div className="bg-white/[0.03] border border-white/10 rounded-[1.5rem] md:rounded-[2.2rem] p-3 md:p-4 flex flex-col items-center justify-center backdrop-blur-xl shadow-lg">
+               <Gauge label="MEM" value={aggregate.memory_percent} />
             </div>
           </div>
         </div>
 
-        {/* INVENTORY REGISTRY */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white/[0.01] border border-white/5 rounded-[2.5rem] p-8 shadow-2xl backdrop-blur-sm overflow-hidden"
-        >
-          <div className="flex items-center gap-3 mb-10 px-4">
-            <Server className="w-5 h-5 text-cyan-400" />
-            <h3 className="font-roboto-condensed text-[11px] font-bold uppercase tracking-[0.3em] text-cyan-400/80">Node_Inventory</h3>
+        {/* CONTAINER REGISTRY */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-4 md:mx-0 space-y-4">
+          <div className="flex items-center gap-3 px-4 mb-2">
+            <Server className="w-4 h-4 text-cyan-400" />
+            <h3 className="font-roboto-condensed text-[11px] font-black uppercase tracking-[0.3em] text-cyan-400/80">Node_Inventory</h3>
           </div>
 
-          <div className="space-y-4 max-h-[600px] overflow-y-auto cyber-scroll pr-4">
+          <div className="space-y-4">
             {containers.map((c) => (
-              <div
-                key={c.id}
-                className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 rounded-[2rem] border border-white/5 bg-black/40 hover:bg-white/[0.03] hover:border-white/10 transition-all group gap-8"
-              >
-                <div className="flex items-center gap-6 min-w-0 w-full md:w-auto">
-                  <div className="hidden md:block">
-                    <ChevronRight className="w-5 h-5 text-cyan-500 opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              <div key={c.id} className="bg-white/[0.03] border border-white/10 rounded-[2rem] p-5 md:p-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 hover:bg-white/[0.05] transition-all relative overflow-hidden group backdrop-blur-sm">
+                <div className="absolute inset-y-0 left-0 w-[2px] bg-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/5 rounded-2xl border border-white/10 shadow-inner">
+                    <Server className={`w-5 h-5 ${c.status === "running" ? "text-cyan-400" : "text-gray-600"}`} />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-jetbrains text-lg font-bold text-white uppercase tracking-tight">{c.name}</p>
+                    <p className="font-jetbrains text-sm md:text-lg font-black text-white uppercase tracking-tight truncate">{c.name}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${c.status === "running" ? "bg-green-500 shadow-[0_0_8px_#22c55e]" : "bg-red-500 shadow-[0_0_8px_#ef4444]"}`}/>
-                      <span className={`font-roboto-condensed text-[10px] font-bold uppercase tracking-widest ${c.status === "running" ? "text-green-400/70" : "text-red-400/70"}`}>
+                      <span className={`font-roboto-condensed text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded border ${c.status === "running" ? "text-green-400 border-green-500/30 bg-green-500/5" : "text-red-400 border-red-500/30 bg-red-500/5"}`}>
                         {c.status}
                       </span>
-                      <span className="text-gray-700 text-[10px]">|</span>
-                      <span className="font-jetbrains text-[9px] text-gray-500 uppercase">HEX_ID: {c.id.substring(0, 12)}</span>
+                      <span className="font-jetbrains text-[8px] text-gray-600 uppercase tabular-nums">ID: {c.id.substring(0, 8)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between md:justify-end gap-10 w-full md:w-auto border-t md:border-t-0 border-white/5 pt-6 md:pt-0">
+                <div className="flex flex-col sm:flex-row items-center gap-6 md:gap-10 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
                   {c.status === "running" && (
-                    <div className="flex items-center gap-8">
-                      <div className="text-center">
-                        <p className="font-roboto-condensed text-[8px] font-bold text-gray-600 uppercase mb-2 tracking-widest">CPU_LIVE</p>
+                    <div className="flex items-center gap-8 w-full sm:w-auto justify-center">
+                      <div className="flex flex-col items-center">
+                        <p className="font-roboto-condensed text-[7px] font-black text-gray-600 uppercase mb-2 tracking-widest">CPU</p>
                         <MemoizedMiniChart data={containerTimeline[c.name] || []} color="#22d3ee" />
                       </div>
-                      <div className="text-center">
-                        <p className="font-roboto-condensed text-[8px] font-bold text-gray-600 uppercase mb-2 tracking-widest">MEM_LIVE</p>
+                      <div className="flex flex-col items-center">
+                        <p className="font-roboto-condensed text-[7px] font-black text-gray-600 uppercase mb-2 tracking-widest">MEM</p>
                         <MemoizedMiniChart data={containerMemTimeline[c.name] || []} color="#a855f7" />
                       </div>
                     </div>
                   )}
 
-                  <div className="flex gap-3 font-roboto-condensed">
-                    <button
-                      onClick={() => toggleContainer(c)}
-                      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${c.status === "running" ? "border-red-500/20 text-red-500 hover:bg-red-500/10" : "border-green-500/20 text-green-400 hover:bg-green-500/10"}`}
-                    >
-                      <Power size={12} />
-                      {c.status === "running" ? "Kill" : "Wake"}
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <button onClick={() => toggleContainer(c)} className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${c.status === "running" ? "bg-red-500/10 border border-red-500/20 text-red-500 active:bg-red-500/30" : "bg-green-500/10 border border-green-500/20 text-green-400 active:bg-green-500/30"}`}>
+                      <Power size={12} /> {c.status === "running" ? "Kill" : "Wake"}
                     </button>
-                    <button
-                      onClick={() => viewLogs(c.name)}
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-white/10 text-gray-400 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all"
-                    >
-                      <FileText size={12} />
-                      Logs
+                    <button onClick={() => viewLogs(c.name)} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-white transition-all active:scale-95 shadow-lg">
+                      <FileText size={12} /> Logs
                     </button>
                   </div>
                 </div>
@@ -238,38 +213,23 @@ const DockerSettings = () => {
         </motion.div>
       </main>
 
-      {/* OVERLAY LOG VIEWER */}
+      {/* LOG OVERLAY */}
       <AnimatePresence>
         {selectedContainer && (
-          <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-6 md:p-12 backdrop-blur-xl">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.98, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 10 }}
-              className="bg-[#05070a] border border-white/10 rounded-[3rem] w-full max-w-7xl h-[85vh] flex flex-col shadow-2xl overflow-hidden"
-            >
-              <div className="flex items-center justify-between px-10 py-8 border-b border-white/5 bg-white/[0.01]">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-cyan-500/10 rounded-lg">
-                    <Terminal className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-jetbrains text-lg font-bold text-white uppercase tracking-tight">{selectedContainer}</h4>
-                    <p className="font-roboto-condensed text-[9px] font-bold text-gray-500 uppercase tracking-widest">Live_Container_Stream_Buffer</p>
-                  </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/95 z-[1000] flex items-end md:items-center justify-center">
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="bg-[#03050a] border-t md:border border-white/10 md:rounded-[2.5rem] w-full max-w-6xl h-[85vh] md:h-[80vh] flex flex-col overflow-hidden shadow-[0_-20px_60px_rgba(0,0,0,0.8)]">
+              <div className="bg-white/[0.03] px-6 py-5 flex items-center justify-between border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <Terminal className="w-4 h-4 text-cyan-400" />
+                  <h4 className="font-jetbrains text-sm font-black text-white uppercase">{selectedContainer}</h4>
                 </div>
-                <button 
-                  onClick={() => { setSelectedContainer(null); setLogs(""); }} 
-                  className="p-2 hover:bg-red-500/10 rounded-full transition-colors group"
-                >
-                  <XCircle size={24} className="text-gray-600 group-hover:text-red-500 transition-colors" />
-                </button>
+                <button onClick={() => { setSelectedContainer(null); setLogs(""); }} className="p-2 bg-white/5 rounded-full text-gray-500 active:text-red-500"><XCircle size={24} /></button>
               </div>
-              <div className="flex-1 overflow-auto p-10 bg-[radial-gradient(circle_at_center,_#ffffff03_1px,_transparent_1px)] bg-[size:32px_32px] cyber-scroll">
-                <pre className="font-jetbrains text-[12px] text-cyan-400/70 whitespace-pre-wrap leading-relaxed selection:bg-cyan-500/40">
-                  {logs || "// BUFFER_EMPTY :: NO_LOG_DATA_DETECTED"}
-                </pre>
+              <div className="flex-1 overflow-auto p-6 md:p-10 cyber-scroll bg-black">
+                <pre className="font-jetbrains text-[10px] md:text-[13px] text-cyan-400/70 whitespace-pre-wrap leading-relaxed">{logs || "// BUFFER_EMPTY"}</pre>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

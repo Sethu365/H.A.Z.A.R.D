@@ -10,7 +10,6 @@ import {
 } from "recharts";
 
 const TimelineAreaChart = ({ data = [], height = 300 }) => {
-  // Local state to handle window resizing for axis logic
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -54,13 +53,25 @@ const TimelineAreaChart = ({ data = [], height = 300 }) => {
   };
 
   return (
-    <div className="w-full h-full min-h-[180px]">
+    <div className="w-full h-full min-h-[180px] relative">
+      
+      {/* --- HUD TACTICAL LEGEND --- */}
+      <div className="absolute top-2 right-4 flex items-center gap-4 z-10 pointer-events-none">
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]" />
+          <span className="font-roboto-condensed text-[8px] font-black text-gray-500 uppercase tracking-widest">CPU_UTIL</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#a855f7] shadow-[0_0_8px_#a855f7]" />
+          <span className="font-roboto-condensed text-[8px] font-black text-gray-500 uppercase tracking-widest">MEM_UTIL</span>
+        </div>
+      </div>
+
       <ResponsiveContainer width="100%" height={isMobile ? 220 : height}>
         <AreaChart
           data={data}
-          // Negative left margin on mobile pulls the chart to the edge when YAxis is hidden
           margin={{ 
-            top: 10, 
+            top: 30, // Increased to clear HUD Legend
             right: isMobile ? 5 : 10, 
             left: isMobile ? -35 : -15, 
             bottom: 0 
@@ -86,7 +97,7 @@ const TimelineAreaChart = ({ data = [], height = 300 }) => {
 
           <XAxis
             dataKey="time"
-            tick={{ fill: "#6b7280", fontSize: 8, fontWeight: 800 }}
+            tick={{ fill: "#6b7280", fontSize: 8, fontWeight: 800, fontFamily: 'JetBrains Mono' }}
             tickLine={false}
             axisLine={false}
             minTickGap={isMobile ? 40 : 30}
@@ -95,16 +106,14 @@ const TimelineAreaChart = ({ data = [], height = 300 }) => {
 
           <YAxis
             domain={[0, 100]}
-            tick={{ fill: "#6b7280", fontSize: 8, fontWeight: 800 }}
+            tick={{ fill: "#6b7280", fontSize: 8, fontWeight: 800, fontFamily: 'JetBrains Mono' }}
             tickLine={false}
             axisLine={false}
-            // Complements image_d3c642.png layout by maximizing horizontal space
             hide={isMobile}
           />
 
           <Tooltip 
             content={<CustomTooltip />} 
-            // Ensures tooltip doesn't get cut off on small screens
             position={isMobile ? { y: 0 } : undefined}
           />
 

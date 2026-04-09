@@ -26,6 +26,13 @@ const TimescaleLogs = () => {
   const [offset, setOffset] = useState(0);
   const [expandedRow, setExpandedRow] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const fetchLogs = async () => {
     setIsSyncing(true);
@@ -65,181 +72,188 @@ const TimescaleLogs = () => {
   const chartData = rateData(logs);
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white font-inter selection:bg-cyan-500/30">
+    <div className="min-h-screen bg-[#020617] text-white font-inter selection:bg-cyan-500/30 overflow-x-hidden">
       
-      <main className="pt-12 pb-20 px-6 md:px-12 w-full space-y-8 transition-all duration-500">
+      <main className="pt-4 pb-24 px-2 md:px-12 w-full space-y-4 md:space-y-6 transition-all duration-500">
         
-        {/* INTEGRATED HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
-          <div className="flex items-center gap-4">
+        {/* REFINED TACTICAL HEADER - BACK BUTTON HIDDEN ON MOBILE */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2 px-4 md:px-0 relative">
+          <div className="flex items-center gap-4 flex-1">
+            {/* Desktop Only Back Button */}
             <button 
               onClick={() => navigate(-1)} 
-              className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors border border-white/5"
+              className="hidden md:flex p-3 bg-white/5 rounded-2xl border border-white/10 hover:bg-cyan-500/10 active:scale-90 backdrop-blur-md z-10"
             >
               <ChevronLeft size={20} className="text-cyan-400" />
             </button>
-            <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight text-white">Uplink Stream</h1>
-              <p className="font-roboto-condensed text-[10px] font-bold text-cyan-500/60 uppercase tracking-[0.2em]">TimescaleDB_Forensic_Telemetry</p>
+            
+            <div className="w-full text-center md:text-left">
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase font-inter leading-none">Uplink Stream</h1>
+              <p className="hidden md:block font-roboto-condensed text-[10px] font-bold text-cyan-500/60 uppercase tracking-[0.2em] mt-2">TimescaleDB_Forensic_Telemetry</p>
             </div>
-          </div>
-          <div className="flex items-center gap-6 bg-black/40 border border-white/5 py-3 px-6 rounded-2xl">
-            <div className="flex flex-col items-end">
-              <span className="font-roboto-condensed text-[8px] font-bold text-gray-500 uppercase tracking-widest">Stream_Status</span>
-              <span className="font-jetbrains text-xs font-bold text-cyan-400 uppercase tracking-tighter">HYPERTABLE_ACTIVE</span>
-            </div>
-            <div className="w-[1px] h-8 bg-white/10" />
-            <RefreshCw size={16} className={`${isSyncing ? 'animate-spin text-cyan-400' : 'text-gray-700'}`} />
           </div>
         </div>
 
-        {/* EVENT RATE MONITOR (WIDER) */}
+        {/* EVENT RATE MONITOR */}
         <motion.div 
-          layout
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white/[0.01] border border-white/5 rounded-[2.5rem] p-8 shadow-2xl backdrop-blur-sm"
+          className="mx-2 md:mx-0 bg-white/[0.02] border border-white/10 rounded-[1.5rem] md:rounded-[2.2rem] p-4 md:p-8 backdrop-blur-xl shadow-2xl overflow-hidden relative"
         >
-          <div className="flex items-center gap-3 mb-10 px-2">
-            <Activity className="w-5 h-5 text-cyan-400" />
-            <h3 className="font-roboto-condensed text-[11px] font-bold uppercase text-cyan-400/80 tracking-[0.3em]">Ingestion_Velocity_Telemetry</h3>
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+          <div className="flex items-center gap-3 mb-6 md:mb-10 px-2">
+            <Activity className="w-4 h-4 text-cyan-400" />
+            <h3 className="font-roboto-condensed text-[10px] md:text-[11px] font-black uppercase text-cyan-400 tracking-[0.3em]">Velocity_Telemetry</h3>
           </div>
 
-          <div className="h-[300px] w-full bg-black/20 rounded-3xl p-6">
+          <div className="h-[220px] md:h-[350px] w-full bg-black/40 rounded-xl p-1 md:p-6 border border-white/5 shadow-inner">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={chartData} margin={{ top: 5, right: 10, left: isMobile ? -35 : 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" vertical={false} opacity={0.03} />
                 <XAxis
                   dataKey="time"
-                  tick={{ fill: "#4b5563", fontSize: 10, fontWeight: 700, fontFamily: 'Roboto Condensed' }}
+                  tick={{ fill: "#64748b", fontSize: 8, fontWeight: 900, fontFamily: 'JetBrains Mono' }}
                   tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  axisLine={false} tickLine={false}
+                  axisLine={false} tickLine={false} minTickGap={40}
                 />
-                <YAxis tick={{ fill: "#4b5563", fontSize: 10, fontWeight: 700, fontFamily: 'Roboto Condensed' }} axisLine={false} tickLine={false} />
+                <YAxis hide={isMobile} tick={{ fill: "#64748b", fontSize: 8, fontWeight: 900, fontFamily: 'JetBrains Mono' }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#05070a", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "16px", fontSize: "11px", fontFamily: 'JetBrains Mono' }}
-                  labelFormatter={(l) => `Timestamp: ${new Date(l).toLocaleString()}`}
+                  contentStyle={{ backgroundColor: "rgba(2, 6, 23, 0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "10px", fontFamily: 'JetBrains Mono', backdropFilter: "blur(12px)" }}
+                  labelFormatter={(l) => `Stamp: ${new Date(l).toLocaleString()}`}
                 />
-                <Line type="monotone" dataKey="count" stroke="#22d3ee" strokeWidth={3} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="count" stroke="#22d3ee" strokeWidth={isMobile ? 2 : 3} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
         {/* LOG CONTROLS */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 bg-white/[0.02] p-6 rounded-[2rem] border border-white/5 shadow-xl">
-          <div className="font-roboto-condensed flex items-center gap-6 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+        <div className="flex flex-col sm:flex-row items-stretch justify-between gap-4 mx-2 md:mx-0 p-4 bg-white/[0.03] rounded-[1.5rem] md:rounded-[2rem] border border-white/10 shadow-xl backdrop-blur-md">
+          <div className="font-roboto-condensed flex items-center justify-between md:justify-start gap-6 text-[10px] font-black uppercase tracking-widest text-gray-500 px-2">
             <div className="flex items-center gap-2">
               <ListFilter size={14} className="text-cyan-500" />
-              <span>Buffer_Size:</span>
+              <span>Buffer:</span>
             </div>
             <select
               value={limit}
               onChange={(e) => { setOffset(0); setLimit(Number(e.target.value)); }}
-              className="bg-black/60 border border-white/10 rounded-xl px-4 py-2 text-cyan-400 outline-none focus:border-cyan-500/50 transition-all font-jetbrains"
+              className="bg-black/60 border border-white/10 rounded-xl px-4 py-2 text-cyan-400 outline-none font-jetbrains text-[11px]"
             >
-              {[25, 50, 100].map((v) => <option key={v} value={v}>{v} Nodes</option>)}
+              {[25, 50, 100].map((v) => <option key={v} value={v}>{v} Pkts</option>)}
             </select>
           </div>
 
-          <div className="flex items-center gap-3 font-roboto-condensed">
+          <div className="flex items-center gap-2 font-roboto-condensed w-full sm:w-auto">
             <button 
               disabled={offset === 0} 
               onClick={() => setOffset(Math.max(0, offset - limit))}
-              className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-widest disabled:opacity-20 hover:bg-white/10 transition-all text-white"
+              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-white/5 border border-white/5 text-[9px] font-black uppercase tracking-widest disabled:opacity-20 hover:bg-white/10 text-white transition-all active:scale-95"
             >
-              Prev_Sector
+              Prev
             </button>
             <button 
               onClick={() => setOffset(offset + limit)}
-              className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all text-white"
+              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-white/5 border border-white/5 text-[9px] font-black uppercase tracking-widest hover:bg-white/10 text-white transition-all active:scale-95"
             >
-              Next_Sector
+              Next
             </button>
           </div>
         </div>
 
-        {/* REGISTRY TABLE (WIDER) */}
-        <motion.div 
-          layout
-          className="bg-white/[0.01] border border-white/5 rounded-[2.5rem] overflow-hidden backdrop-blur-sm shadow-2xl"
-        >
-          <div className="overflow-x-auto cyber-scroll">
-            <table className="w-full text-left border-separate border-spacing-y-0">
-              <thead className="bg-white/[0.02] border-b border-white/5 font-roboto-condensed text-[10px] font-bold uppercase text-gray-500 tracking-[0.3em]">
-                <tr>
-                  <th className="px-8 py-6">Temporal_Stamp</th>
-                  <th className="px-8 py-6 text-center">Node_Source</th>
-                  <th className="px-8 py-6 text-right">Raw_Telemetry</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 font-jetbrains text-[12px]">
-                {loading && !hasLoaded ? (
+        {/* REGISTRY SECTION */}
+        <div className="mx-2 md:mx-0">
+          {!isMobile ? (
+            /* DESKTOP TABLE VIEW */
+            <motion.div layout className="bg-white/[0.01] border border-white/5 rounded-[2.2rem] overflow-hidden backdrop-blur-sm shadow-2xl">
+              <table className="w-full text-left border-separate border-spacing-y-0">
+                <thead className="bg-white/[0.02] border-b border-white/5 font-roboto-condensed text-[10px] font-black uppercase text-gray-500 tracking-[0.3em]">
                   <tr>
-                    <td colSpan={3} className="py-20 text-center">
-                      <div className="flex flex-col items-center gap-4">
-                        <RefreshCw className="animate-spin text-cyan-500" size={24} />
-                        <span className="font-roboto-condensed text-[10px] font-bold uppercase tracking-widest text-gray-600">Establishing_Forensic_Link</span>
-                      </div>
-                    </td>
+                    <th className="px-8 py-6">Temporal_Stamp</th>
+                    <th className="px-8 py-6 text-center">Node_Source</th>
+                    <th className="px-8 py-6 text-right">Raw_Telemetry</th>
                   </tr>
-                ) : logs.map((row, idx) => (
-                  <React.Fragment key={idx}>
-                    <tr className={`hover:bg-white/[0.02] transition-colors group ${expandedRow === idx ? 'bg-white/[0.03]' : ''}`}>
-                      <td className="px-8 py-5 text-gray-400 font-medium">
-                        {row.event_time ? new Date(row.event_time).toLocaleString() : "---"}
-                      </td>
-                      <td className="px-8 py-5 text-center">
-                        <span className="px-4 py-1.5 rounded-xl bg-cyan-500/5 border border-cyan-500/10 text-cyan-400 font-bold uppercase tracking-tighter">
-                          {row.hostname || "UNKNOWN_NODE"}
-                        </span>
-                      </td>
-                      <td className="px-8 py-5 text-right font-roboto-condensed">
-                        <button
-                          onClick={() => setExpandedRow(expandedRow === idx ? null : idx)}
-                          className={`inline-flex items-center gap-3 px-5 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all ${expandedRow === idx ? 'bg-white text-black' : 'bg-white/5 text-gray-500 hover:text-white hover:bg-white/10'}`}
-                        >
-                          {expandedRow === idx ? "Collapse" : "Decode"}
-                          <Terminal size={14} />
-                        </button>
-                      </td>
-                    </tr>
-
-                    <AnimatePresence>
+                </thead>
+                <tbody className="divide-y divide-white/5 font-jetbrains text-[12px]">
+                  {loading && !hasLoaded ? (
+                    <tr><td colSpan={3} className="py-20 text-center animate-pulse">Establishing_Link...</td></tr>
+                  ) : logs.map((row, idx) => (
+                    <React.Fragment key={idx}>
+                      <tr className={`hover:bg-white/[0.02] transition-colors group ${expandedRow === idx ? 'bg-white/[0.03]' : ''}`}>
+                        <td className="px-8 py-5 text-gray-400 font-medium">{new Date(row.event_time).toLocaleString()}</td>
+                        <td className="px-8 py-5 text-center">
+                          <span className="px-4 py-1.5 rounded-xl bg-cyan-500/5 border border-cyan-500/10 text-cyan-400 font-bold uppercase tracking-tighter">
+                            {row.hostname || "UNKNOWN_NODE"}
+                          </span>
+                        </td>
+                        <td className="px-8 py-5 text-right">
+                          <button onClick={() => setExpandedRow(expandedRow === idx ? null : idx)} className={`inline-flex items-center gap-3 px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${expandedRow === idx ? 'bg-white text-black' : 'bg-white/5 text-gray-500 hover:text-white border border-white/5'}`}>
+                            {expandedRow === idx ? "Collapse" : "Decode"} <Terminal size={14} />
+                          </button>
+                        </td>
+                      </tr>
                       {expandedRow === idx && (
                         <tr>
-                          <td colSpan={3} className="bg-black/60 p-0">
-                            <motion.div 
-                              initial={{ height: 0, opacity: 0 }} 
-                              animate={{ height: "auto", opacity: 1 }} 
-                              exit={{ height: 0, opacity: 0 }}
-                              className="px-10 py-8 border-y border-cyan-500/10"
-                            >
+                           <td colSpan={3} className="bg-black/60 p-0">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-10 py-8 border-y border-cyan-500/10">
                               <div className="flex items-center justify-between mb-6">
-                                <div className="space-y-1">
-                                  <p className="font-roboto-condensed text-[10px] font-bold uppercase text-cyan-500 tracking-widest">Forensic_Data_Packet</p>
-                                  <p className="font-jetbrains text-[9px] text-gray-600 uppercase">Sequence_ID: {idx.toString(16).padStart(8, '0')}</p>
-                                </div>
-                                <button
-                                  onClick={() => navigator.clipboard.writeText(JSON.stringify(row.original_payload, null, 2))}
-                                  className="flex items-center gap-2 px-5 py-2.5 bg-cyan-500/10 rounded-xl text-[10px] font-bold text-cyan-400 hover:bg-cyan-500/20 transition-all uppercase tracking-widest"
-                                >
-                                  <Copy size={12} /> Sync to Clipboard
-                                </button>
+                                <p className="font-roboto-condensed text-[10px] font-black uppercase text-cyan-500 tracking-widest leading-none">Forensic_Data_Packet</p>
+                                <button onClick={() => navigator.clipboard.writeText(JSON.stringify(row.original_payload, null, 2))} className="flex items-center gap-2 px-5 py-2.5 bg-cyan-500/10 rounded-xl text-[10px] font-black text-cyan-400 uppercase tracking-widest active:scale-95"><Copy size={12} /> Copy_Hex</button>
                               </div>
-                              <pre className="font-jetbrains text-[13px] text-gray-300 leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-auto cyber-scroll p-8 bg-black/40 rounded-3xl border border-white/5 shadow-inner">
-                                {JSON.stringify(row.original_payload, null, 3)}
-                              </pre>
+                              <pre className="font-jetbrains text-[12px] text-gray-300 leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-auto cyber-scroll p-6 bg-black/40 rounded-2xl border border-white/5">{JSON.stringify(row.original_payload, null, 3)}</pre>
                             </motion.div>
-                          </td>
+                           </td>
                         </tr>
                       )}
-                    </AnimatePresence>
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </motion.div>
+          ) : (
+            /* MOBILE REGISTRY CARDS */
+            <div className="space-y-3 pb-6">
+              {loading && !hasLoaded ? (
+                <div className="py-20 text-center uppercase font-roboto-condensed text-[10px] tracking-widest text-cyan-500 animate-pulse">Establishing_Link</div>
+              ) : logs.map((row, idx) => (
+                <div key={idx} className="bg-white/[0.03] border border-white/10 rounded-[1.5rem] p-5 space-y-4 backdrop-blur-md relative overflow-hidden">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <p className="font-roboto-condensed text-[8px] font-black text-gray-600 uppercase tracking-widest leading-none">Timestamp</p>
+                      <p className="font-jetbrains text-[11px] text-gray-400">{new Date(row.event_time).toLocaleTimeString()}</p>
+                    </div>
+                    <div className="text-right space-y-1">
+                      <p className="font-roboto-condensed text-[8px] font-black text-gray-600 uppercase tracking-widest leading-none">Source</p>
+                      <p className="font-jetbrains text-[11px] font-black text-cyan-400 uppercase">{row.hostname || "UNK"}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setExpandedRow(expandedRow === idx ? null : idx)}
+                    className={`w-full flex items-center justify-center gap-3 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${expandedRow === idx ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'bg-white/5 text-gray-400 border border-white/10'}`}
+                  >
+                    {expandedRow === idx ? "Hide_Buffer" : "Decode_Telemetry"}
+                    <Terminal size={14} />
+                  </button>
+
+                  <AnimatePresence>
+                    {expandedRow === idx && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden pt-2">
+                        <div className="bg-black/80 rounded-2xl border border-white/10 p-4 space-y-4 shadow-inner">
+                           <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                              <span className="font-roboto-condensed text-[9px] font-black text-cyan-500 uppercase tracking-widest">HEX_DUMP</span>
+                              <button onClick={() => navigator.clipboard.writeText(JSON.stringify(row.original_payload, null, 2))} className="text-gray-600 active:text-white"><Copy size={12} /></button>
+                           </div>
+                           <pre className="font-jetbrains text-[10px] text-gray-400 leading-relaxed overflow-x-auto max-h-[300px] cyber-scroll">
+                              {JSON.stringify(row.original_payload, null, 2)}
+                           </pre>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

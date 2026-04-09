@@ -427,42 +427,43 @@ const ClientCommandExecution = ({ setLoading, setError }) => {
   return (
     <div className="min-h-screen bg-[#020617] text-white font-inter">
               {/* HEADER: Inter (Navigation / Title) */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-white/5">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate(-1)} 
-              className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <Server size={18} className="text-cyan-500 animate-pulse" />
-                <h1 className="text-2xl font-black text-white tracking-tighter uppercase font-inter">
-                  Node: {hostname}
-                </h1>
-              </div>
-              {/* Labels: Roboto Condensed */}
-              <p className="font-roboto-condensed text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mt-1">
-                Diagnostic_Telemetry // neural_registry_v4
-              </p>
+{/* ─── HEADER: Optimized Mobile Tactical ─── */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 md:py-2 md:pb-2 border-b border-white/5 px-4 md:px-6">
+        <div className="flex items-center justify-center md:justify-start gap-4 w-full md:w-auto">
+          {/* Back Button: Laptop Only */}
+          <button 
+            onClick={() => navigate(-1)} 
+            className="hidden md:flex p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all active:scale-95"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          
+          <div className="flex flex-col items-center md:items-start">
+            <div className="flex items-center gap-2">
+              {/* Pulsing Server Icon: Laptop Only */}
+              <Server size={18} className="text-cyan-500 animate-pulse hidden md:block" />
+              
+              <h1 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase font-inter text-center">
+                Command Execution Center : {hostname}
+              </h1>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border backdrop-blur-md ${isOnline ? 'border-green-500/20 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'}`} />
-                <span className="font-roboto-condensed text-[10px] font-black uppercase tracking-widest text-slate-300">
-                  {isOnline ? 'Uplink_Established' : 'Uplink_Interrupted'}
-                </span>
-             </div>
+            {/* Subtitle: Laptop Only */}
+            <p className="hidden md:block font-roboto-condensed text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mt-1">
+              Diagnostic_Telemetry // neural_registry_v4
+            </p>
           </div>
-        </header>
+        </div>
 
-      <main className=" pb-6 px-4 md:px-6 max-w-[1680px] mx-auto h-screen flex flex-col gap-3">
+        {/* Uplink Status Badge: Laptop Only */}
+
+      </header>
+
+      {/* ─── MAIN CONTENT ─── */}
+      <main className="pb-6 px-4 md:px-6 max-w-[1680px] mx-auto min-h-[calc(100vh-80px)] flex flex-col gap-3">
 
         {/* ── Status Bar ── */}
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           className="shrink-0 flex items-center justify-between bg-white/[0.018] border border-white/[0.06] px-5 py-2.5 rounded-2xl"
@@ -500,7 +501,7 @@ const ClientCommandExecution = ({ setLoading, setError }) => {
               <span className="font-mono text-[9px] text-gray-500 tracking-wider">gRPC v4</span>
             </div>
           </div>
-        </motion.div>
+        </motion.div> */}
 
         {/* ── Body ── */}
         <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[200px_1fr_280px] gap-3">

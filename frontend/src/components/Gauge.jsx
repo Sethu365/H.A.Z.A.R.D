@@ -10,9 +10,9 @@ const Gauge = ({
   label,
   value = 0,
   unit = "%",
-  thickness = 8
+  thickness = 8 // Reverted to original thickness for that solid look
 }) => {
-  // 1. Responsive Size Logic
+  // REVERTED: Size is back to your original 140px, scaling down to 110px on mobile
   const [size, setSize] = useState(window.innerWidth < 640 ? 110 : 140);
 
   useEffect(() => {
@@ -39,20 +39,24 @@ const Gauge = ({
   return (
     <div
       className={`
-        bg-white/[0.02]
-        backdrop-blur-md
-        border border-white/5
+        relative
+        bg-white/[0.03]
+        backdrop-blur-xl
+        border border-white/10
         rounded-[2rem]
-        p-4 md:p-6
+        p-5 md:p-6
         flex flex-col items-center justify-center
         transition-all duration-500
         w-full
         font-inter
-        ${isOffline ? 'opacity-40' : 'opacity-100 shadow-xl'}
+        ${isOffline ? 'opacity-40' : 'opacity-100 shadow-2xl'}
       `}
     >
-      {/* LABEL - Roboto Condensed */}
-      <span className="font-roboto-condensed text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-4 md:mb-6 text-center">
+      {/* Glossy top edge highlight */}
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+
+      {/* LABEL - Reverted to original spacing */}
+      <span className="font-roboto-condensed text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-5 text-center">
         {label}
       </span>
 
@@ -93,26 +97,25 @@ const Gauge = ({
               ease: [0.16, 1, 0.3, 1] 
             }}
             style={{
-              filter: isOffline ? 'none' : `drop-shadow(0 0 12px ${color}66)`
+              filter: isOffline ? 'none' : `drop-shadow(0 0 12px ${color}88)`
             }}
           />
         </svg>
 
-        {/* CENTER TELEMETRY READOUT - JetBrains Mono for values */}
+        {/* CENTER TELEMETRY READOUT */}
         <div className="absolute flex flex-col items-center">
           <motion.span
             key={safeValue} 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className={`font-jetbrains font-black tabular-nums tracking-tighter transition-colors duration-500
-              ${isOffline ? 'text-2xl' : 'text-3xl md:text-4xl'}
+              ${isOffline ? 'text-xl' : 'text-2xl md:text-4xl'}
             `}
             style={{ color: isOffline ? "#6b7280" : "white" }}
           >
             {isOffline ? "--" : `${safeValue.toFixed(0)}${unit}`}
           </motion.span>
           
-          {/* HUD Label: Roboto Condensed */}
           <span className={`font-roboto-condensed text-[7px] md:text-[8px] font-black uppercase tracking-widest mt-1
             ${isOffline ? 'text-gray-600' : 'text-cyan-500/60'}
           `}>
@@ -121,10 +124,9 @@ const Gauge = ({
         </div>
       </div>
       
-      {/* BOTTOM ACCENT */}
-      {!isOffline && (
-        <div className="hidden md:block mt-6 w-12 h-[2px] bg-gradient-to-r from-transparent via-white/10 to-transparent rounded-full" />
-      )}
+      {/* Decorative corners for mobile only to keep the forensic vibe */}
+      <div className="absolute top-4 left-4 w-1.5 h-1.5 border-t border-l border-white/10 md:hidden" />
+      <div className="absolute bottom-4 right-4 w-1.5 h-1.5 border-b border-r border-white/10 md:hidden" />
     </div>
   );
 };

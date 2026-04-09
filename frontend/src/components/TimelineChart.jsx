@@ -7,6 +7,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Area,
+  AreaChart
 } from "recharts";
 
 const TimelineChart = ({ data = [] }) => {
@@ -20,8 +22,8 @@ const TimelineChart = ({ data = [] }) => {
 
   if (!data || data.length === 0) {
     return (
-      <div className="font-roboto-condensed h-full flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 border border-dashed border-white/5 rounded-2xl">
-        Buffer_Empty // Awaiting_Link
+      <div className="font-roboto-condensed h-full flex items-center justify-center text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-gray-700 bg-white/[0.01] border border-dashed border-white/10 rounded-[2rem]">
+        Buffer_Empty // Awaiting_Telemetry
       </div>
     );
   }
@@ -31,81 +33,91 @@ const TimelineChart = ({ data = [] }) => {
       <LineChart
         data={data}
         margin={{ 
-          top: 10, 
-          right: isMobile ? 5 : 15, 
-          left: isMobile ? -35 : -15, 
-          bottom: 0 
+          top: 15, 
+          right: isMobile ? 10 : 25, 
+          left: isMobile ? -30 : -10, 
+          bottom: 5 
         }}
       >
+        {/* GLOSSY GRID */}
         <CartesianGrid
           vertical={false}
-          strokeDasharray="3 3"
-          stroke="rgba(255, 255, 255, 0.03)"
+          strokeDasharray="4 4"
+          stroke="rgba(255, 255, 255, 0.05)"
         />
 
         <XAxis
           dataKey="time"
-          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800, fontFamily: 'JetBrains Mono' }}
+          tick={{ fill: "#64748b", fontSize: 8, fontWeight: 900, fontFamily: 'JetBrains Mono' }}
           tickLine={false}
           axisLine={false}
-          minTickGap={isMobile ? 40 : 30}
+          minTickGap={isMobile ? 50 : 40}
           interval="preserveStartEnd"
+          dy={10}
         />
 
         <YAxis
           domain={[0, 100]}
-          tick={{ fill: "#4b5563", fontSize: 8, fontWeight: 800, fontFamily: 'JetBrains Mono' }}
+          tick={{ fill: "#64748b", fontSize: 8, fontWeight: 900, fontFamily: 'JetBrains Mono' }}
           tickLine={false}
           axisLine={false}
           hide={isMobile}
         />
 
         <Tooltip
-          cursor={{ stroke: "rgba(6, 182, 212, 0.2)", strokeWidth: 1 }}
-          position={isMobile ? { y: 0 } : undefined}
+          cursor={{ stroke: "rgba(34, 211, 238, 0.2)", strokeWidth: 1 }}
+          position={isMobile ? { y: -20 } : undefined}
           contentStyle={{
-            backgroundColor: "rgba(2, 6, 23, 0.95)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: "12px",
-            backdropFilter: "blur(12px)",
+            backgroundColor: "rgba(2, 6, 23, 0.85)",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            borderRadius: "16px",
+            backdropFilter: "blur(20px)",
             fontSize: "10px",
             color: "#fff",
-            boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)",
-            padding: "8px 12px",
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.6)",
+            padding: "10px 14px",
             fontFamily: 'JetBrains Mono'
           }}
-          itemStyle={{ padding: "0" }}
+          itemStyle={{ padding: "2px 0" }}
           labelStyle={{
-            color: "#9ca3af",
-            marginBottom: "6px",
+            color: "#64748b",
+            marginBottom: "8px",
             fontWeight: "900",
             textTransform: "uppercase",
-            letterSpacing: "0.15em",
-            fontSize: "8px",
+            letterSpacing: "0.2em",
+            fontSize: "7px",
             fontFamily: 'Roboto Condensed'
           }}
         />
 
+        {/* CPU LINE - GLOSSY CYAN */}
         <Line
           type="monotone"
           dataKey="cpu"
-          name="CPU_Load"
-          stroke="#06b6d4" 
-          strokeWidth={isMobile ? 1.5 : 2.5}
+          name="CPU"
+          stroke="#22d3ee" 
+          strokeWidth={isMobile ? 2 : 3}
           dot={false}
-          isAnimationActive={false} 
-          style={{ filter: "drop-shadow(0px 0px 8px rgba(6, 182, 212, 0.6))" }}
+          isAnimationActive={true}
+          animationDuration={1000}
+          style={{ 
+            filter: `drop-shadow(0px 0px 10px rgba(34, 211, 238, 0.5))` 
+          }}
         />
 
+        {/* MEMORY LINE - GLOSSY PURPLE */}
         <Line
           type="monotone"
           dataKey="memory"
-          name="MEM_Usage"
+          name="MEM"
           stroke="#a855f7" 
-          strokeWidth={isMobile ? 1.5 : 2.5}
+          strokeWidth={isMobile ? 2 : 3}
           dot={false}
-          isAnimationActive={false}
-          style={{ filter: "drop-shadow(0px 0px 8px rgba(168, 85, 247, 0.6))" }}
+          isAnimationActive={true}
+          animationDuration={1000}
+          style={{ 
+            filter: `drop-shadow(0px 0px 10px rgba(168, 85, 247, 0.5))` 
+          }}
         />
       </LineChart>
     </ResponsiveContainer>

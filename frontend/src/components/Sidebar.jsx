@@ -6,10 +6,13 @@ import {
   Users, AlertTriangle, Settings, Activity, Info,
   Terminal, GitBranch, FolderOpen, ChevronLeft, Command, OctagonAlert
 } from "lucide-react";
+import { useState } from "react";
+import SshTerminal from "../components/SshTerminal";
 
-const Sidebar = () => {
+const Sidebar = ({ onOpenTerminal }) => {
   const location = useLocation();
   const navigate = useNavigate(); 
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const clientPathMatch = location.pathname.match(/^\/clients\/([^/]+)/);
   const hostname = clientPathMatch ? clientPathMatch[1] : null;
 
@@ -32,116 +35,134 @@ const Sidebar = () => {
   const activeNavItems = hostname ? clientNavItems : mainNavItems;
 
   return (
-    <motion.aside
-      initial={{ x: -100 }}
-      animate={{ x: 0 }}
-      /* CHANGED: Fixed width w-64, removed hover classes and group */
-      className="fixed left-0 top-0 h-screen w-64 bg-[#020617] border-r border-white/5 flex flex-col z-[100] overflow-hidden"
-    >
-      {/* VERTICAL ACCENT LINE */}
-      <div className="absolute right-0 top-0 h-full w-[1px] bg-gradient-to-b from-transparent via-cyan-500/20 to-transparent" />
-
-      {/* LOGO SECTION */}
-      <div className="flex flex-col items-center py-10 relative">
-        <div 
-          className="relative cursor-pointer group/logo"
-          onClick={() => navigate('/')}
-        >
-          <img 
-            src={eyeLogo} 
-            alt="AURORA" 
-            className="w-10 h-10 object-contain filter brightness-125 group-hover/logo:scale-110 transition-transform duration-500" 
-          />
-          <div className="absolute -inset-4 bg-cyan-500/5 blur-2xl rounded-full group-hover/logo:bg-cyan-500/20 transition-all" />
-        </div>
-        {/* CHANGED: Always visible opacity-100 */}
-        <div className="mt-6 transition-all duration-500">
-          <h1 className="font-roboto-condensed text-[10px] font-black tracking-[0.8em] text-cyan-500 uppercase italic">
-            AURORA
-          </h1>
-        </div>
-      </div>
-
-      {/* NAVIGATION */}
-      <nav className="flex-1 px-4 py-6 space-y-2 cyber-scroll overflow-y-auto overflow-x-hidden">
+    <>
+      {/* --- DESKTOP SIDEBAR --- */}
+      <motion.aside
+        initial={{ x: -100 }}
+        animate={{ x: 0 }}
+        className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-[#020617] border-r border-white/5 flex-col z-[100] overflow-hidden"
+      >
+        <div className="absolute right-0 top-0 h-full w-[1px] bg-gradient-to-b from-transparent via-cyan-500/20 to-transparent" />
         
-        {/* RETURN / EXIT MODULE */}
-        <button
-          onClick={() => hostname ? navigate('/clients') : navigate('/')}
-          className="relative flex items-center w-full h-12 mb-10 rounded-xl overflow-hidden group/btn transition-all active:scale-95"
-        >
-          <div className="absolute inset-0 bg-white group-hover/btn:bg-cyan-400 transition-colors" />
-          <div className="relative flex items-center justify-start gap-4 w-full px-4 text-[#020617]">
-            <ChevronLeft className="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-roboto-condensed text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
-              {hostname ? "UPLINK_EXIT" : "SYSTEM_HOME"}
-            </span>
-          </div>
-        </button>
+        <div className="flex flex-col items-center py-10 shrink-0">
+          <img src={eyeLogo} alt="AURORA" className="w-10 h-10 object-contain brightness-125 cursor-pointer" onClick={() => navigate('/')} />
+          <h1 className="mt-6 font-roboto-condensed text-[10px] font-black tracking-[0.8em] text-cyan-500 uppercase italic leading-none">AURORA</h1>
+        </div>
 
-        <div className="space-y-1">
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto cyber-scroll">
+          <button
+            onClick={() => hostname ? navigate('/clients') : navigate('/')}
+            className="relative flex items-center w-full h-12 mb-10 rounded-xl overflow-hidden bg-white text-[#020617] active:scale-95 transition-all shadow-lg"
+          >
+            <div className="relative flex items-center justify-start gap-4 w-full px-4">
+              <ChevronLeft className="w-5 h-5" />
+              <span className="font-roboto-condensed text-[10px] font-black uppercase tracking-widest leading-none">{hostname ? "UPLINK_EXIT" : "SYSTEM_HOME"}</span>
+            </div>
+          </button>
+
           {activeNavItems.map(({ path, icon: Icon, label, end }) => (
             <NavLink
               key={path}
               to={path}
               end={end}
-              className={({ isActive }) => `
-                relative flex items-center h-14 rounded-xl transition-all duration-300 group/link
-                ${isActive 
-                  ? "bg-white/5 border border-white/10" 
-                  : "hover:bg-white/[0.02] border border-transparent"
-                }
-              `}
+              className={({ isActive }) => `relative flex items-center h-14 rounded-xl transition-all duration-300 group leading-none ${isActive ? "bg-white/5 border border-white/10" : "hover:bg-white/[0.02] border border-transparent"}`}
             >
-              {/* ACTIVE INDICATOR LINE */}
-              {location.pathname === path && (
-                <div className="absolute left-0 w-1 h-6 bg-cyan-500 rounded-r-full transition-all duration-500" />
-              )}
-              
+              {location.pathname === path && <div className="absolute left-0 w-1 h-6 bg-cyan-500 rounded-r-full shadow-[0_0_10px_#06b6d4]" />}
               <div className="flex items-center justify-start gap-5 w-full px-5">
-                <Icon className={`w-5 h-5 shrink-0 transition-all duration-500 group-hover/link:text-cyan-400 ${location.pathname === path ? 'text-cyan-400' : 'text-gray-500'}`} />
-                {/* CHANGED: Label always visible */}
-                <span className={`font-roboto-condensed text-[11px] font-bold uppercase tracking-[0.2em] whitespace-nowrap transition-colors ${location.pathname === path ? 'text-white' : 'text-gray-500 group-hover/link:text-gray-300'}`}>
-                  {label}
-                </span>
+                <Icon className={`w-5 h-5 transition-all duration-300 ${location.pathname === path ? 'text-cyan-400' : 'text-gray-500'}`} />
+                <span className={`font-roboto-condensed text-[11px] font-bold uppercase tracking-[0.2em] transition-all leading-none ${location.pathname === path ? 'text-white' : 'text-gray-500'}`}>{label}</span>
               </div>
-
-              {/* TACTICAL HOVER GLOW */}
-              <div className="absolute inset-0 bg-cyan-500/0 group-hover/link:bg-cyan-500/[0.03] transition-colors pointer-events-none" />
             </NavLink>
           ))}
-        </div>
-      </nav>
+        </nav>
 
-      {/* FOOTER STATUS */}
-      <div className="p-4 border-t border-white/5 bg-black/20">
-        <div className="flex flex-col items-start p-4 rounded-xl border border-white/5 transition-all">
-          <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <div className="absolute w-4 h-4 rounded-full border border-green-500/50 animate-ping" />
-            </div>
-            {/* CHANGED: Always visible */}
-            <span className="font-roboto-condensed text-[9px] font-black uppercase text-green-500 tracking-[0.2em]">
-              Link_Established
-            </span>
-          </div>
-          
-          {/* CHANGED: Container always visible */}
-          <div className="mt-4 space-y-2 w-full">
-            <div className="flex items-center justify-between text-[8px] font-jetbrains text-gray-600 uppercase">
-              <span>Node_ID</span>
-              <span className="text-gray-400">{hostname ? hostname.slice(0, 8) : "ROOT"}</span>
-            </div>
-            <div className="h-[1px] w-full bg-white/5" />
-            <div className="flex items-center justify-between text-[8px] font-jetbrains text-gray-600 uppercase">
-              <span>Latency</span>
-              <span className="text-cyan-500">12ms</span>
-            </div>
-          </div>
+        <div className="p-4 border-t border-white/5 bg-black/20">
+          <button
+            onClick={() => setIsTerminalOpen(true)}
+            className="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-cyan-500/5 border border-cyan-500/10 hover:bg-cyan-500/10 hover:border-cyan-500/30 transition-all group"
+          >
+            <Terminal size={18} className="text-cyan-400 group-hover:scale-110 transition-transform" />
+            <span className="font-roboto-condensed text-[10px] font-black uppercase tracking-[0.3em] text-cyan-500/80">Secure_Console</span>
+          </button>
         </div>
+      </motion.aside>
+
+      {/* --- MOBILE HYPER-GLASS BOTTOM BAR --- */}
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-[92%] max-w-md">
+        <nav className="
+          bg-white/[0.03] backdrop-blur-[32px] saturate-[1.8]
+          border-t border-l border-white/[0.15] border-r border-b border-white/[0.05]
+          rounded-[2.5rem] px-2 py-2.5 flex items-center justify-between
+          shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7),inset_0_0_20px_rgba(255,255,255,0.02)]
+          relative overflow-hidden
+        ">
+          {/* Surface Caustic light effect */}
+          <div className="absolute -top-[100%] -left-[50%] w-[200%] h-[200%] bg-gradient-to-br from-white/[0.08] via-transparent to-transparent rotate-12 pointer-events-none" />
+
+          {/* Dynamic Nav Cluster (No Back Button) */}
+          <div className="flex items-center flex-1 justify-around px-2">
+            {activeNavItems.map(({ path, icon: Icon, end }) => {
+              const isActive = location.pathname === path;
+              return (
+                <NavLink key={path} to={path} end={end} className="relative p-3.5 active:scale-90 transition-all">
+                  {isActive && (
+                    <motion.div 
+                      layoutId="mobile-active-glow" 
+                      className="absolute inset-0 bg-cyan-500/[0.12] rounded-[1.2rem] border border-cyan-400/20"
+                    />
+                  )}
+                  <Icon 
+                    size={22} 
+                    className={`relative z-10 transition-all duration-500 ${isActive ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]' : 'text-white/30'}`} 
+                  />
+                  {isActive && (
+                    <motion.div 
+                      className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-cyan-400 rounded-full shadow-[0_0_10px_#22d3ee]"
+                      layoutId="mobile-dot"
+                    />
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+
+          {/* INTEGRATED TERMINAL TRIGGER */}
+          <div className="ml-1 pl-1 border-l border-white/10">
+            <button
+              onClick={() => setIsTerminalOpen(true)}
+              className="
+                p-4 rounded-[1.8rem]
+                bg-gradient-to-br from-cyan-400 to-cyan-600
+                text-black shadow-[0_10px_20px_rgba(34,211,238,0.25)]
+                active:scale-95 active:brightness-90 transition-all
+                relative overflow-hidden
+              "
+            >
+              {/* Inner shine for the button */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-40" />
+              <Terminal size={22} className="relative z-10" />
+            </button>
+          </div>
+        </nav>
       </div>
-    </motion.aside>
+
+      {/* --- TOP RIGHT FORENSIC NOTCH --- */}
+      <div className="lg:hidden fixed top-0 right-0 z-[100] flex justify-end">
+        <button
+          onClick={() => navigate("/")}
+          className="group relative flex items-center gap-3 px-5 py-2.5 bg-[#020617]/80 backdrop-blur-2xl border-x border-b border-white/10 rounded-bl-[1.2rem] shadow-2xl active:scale-95 pointer-events-auto"
+        >
+          <div className="absolute inset-x-0 top-0 h-[2px] bg-cyan-500/40 blur-[1px]" />
+          <img src={eyeLogo} alt="AURORA" className="w-4 h-4 brightness-150" />
+          <span className="font-roboto-condensed text-[9px] font-black uppercase tracking-[0.2em] text-white">AURORA</span>
+        </button>
+      </div>
+       <SshTerminal
+        isOpen={isTerminalOpen}
+        onClose={() => setIsTerminalOpen(false)}
+        apiBase="http://172.24.16.81:8001"
+      />
+    </>
   );
 };
 

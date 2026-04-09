@@ -13,13 +13,16 @@ const AnomalyClients = ({ setLoading, setError }) => {
   const { hostname } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState({ today_anomalies: 0, data: [] });
-  const [localLoading, setLocalLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLog, setSelectedLog] = useState(null);
   const [showRawLog, setShowRawLog] = useState(false);
-  
-  const [ghostFiles, setGhostFiles] = useState([]);
-  const [ghostLoading, setGhostLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchToday = useCallback(async () => {
     setLoading?.(true);
@@ -33,26 +36,11 @@ const AnomalyClients = ({ setLoading, setError }) => {
         data: result.data || []
       });
       setLoading?.(false);
-      setLocalLoading(false);
     } catch (err) {
       setLoading?.(false);
-      setLocalLoading(false);
       setError?.("Uplink to Client SOC failed");
     }
   }, [hostname, setLoading, setError]);
-
-  const fetchGhostData = async (log) => {
-    setGhostLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/fim/${hostname}/${log.timestamp}`);
-      const result = await res.json();
-      setGhostFiles(result.data || []); 
-    } catch (err) {
-      console.error("Ghost Mode Fetch Failed:", err);
-    } finally {
-      setGhostLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (hostname) fetchToday();
@@ -64,165 +52,130 @@ const AnomalyClients = ({ setLoading, setError }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 font-inter p-4 md:p-6">
-      {/* WIDER EXPANSIVE WRAPPER */}
-      <div className="max-w-[1600px] mx-auto space-y-6 selection:bg-cyan-500/30">
+    <div className="min-h-screen bg-[#020617] text-slate-200 font-inter p-3 md:p-6 pb-32">
+      <div className="max-w-[1600px] mx-auto space-y-4 md:space-y-6 selection:bg-cyan-500/30">
         
-        {/* INTEGRATED HEADER: Replaced Topbar with native tighter design */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-white/5">
-          <div>
-            <div className="flex items-center gap-2">
-              <button 
-      onClick={() => navigate(-1)} 
-      className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all"
-    >
-      <ArrowLeft size={18} />
-    </button>
-              <Orbit size={18} className="text-cyan-500 animate-pulse" />
-              <h1 className="text-2xl font-black text-white tracking-tighter uppercase ">
-                Node: {hostname}
-              </h1>
-            </div>
-            <p className="font-roboto-condensed text-[9px] font-black text-slate-500 uppercase tracking-[0.4em] mt-1">
-              Forensic_Uplink // behavioral_analysis
-            </p>
-          </div>
+        {/* CENTERED MOBILE HEADER */}
+        <header className="flex flex-col gap-6 pb-2 border-b border-white/5">
+<div className="flex items-center justify-between gap-4 md:gap-2">
+  {/* Back Button */}
+  <button 
+    onClick={() => navigate(-1)} 
+    className="hidden md:flex p-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 active:scale-90"
+  >
+    <ArrowLeft size={18} />
+  </button>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(`/clients/${hostname}/client-anomaly/history`)}
-              className="font-roboto-condensed flex items-center gap-2 px-5 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 font-black text-[10px] uppercase tracking-widest hover:bg-purple-500/20 transition-all"
-            >
-              <History size={14} />
-              Archives
-            </button>
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={14} />
-              <input
-                type="text"
-                placeholder="Search Buffer..."
-                className="font-roboto-condensed bg-white/[0.03] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-[11px] outline-none focus:border-cyan-500/50 transition-all w-full md:w-60 uppercase tracking-widest"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+  <div className="flex-1 text-center md:text-left px-2 md:px-4">
+    <h1 className="text-xl md:text-3xl font-black text-white tracking-tighter uppercase inter">
+      Alerts :: {hostname}
+    </h1>
+    <p className="hidden md:block font-roboto-condensed text-[7px] md:text-[9px] font-black text-cyan-500/60 uppercase tracking-[0.3em]">
+      Forensic_Link // behavioral_analysis
+    </p>
+  </div>
+
+  {/* Archive Button */}
+  <button
+    onClick={() => navigate(`/clients/${hostname}/client-anomaly/history`)}
+    className="hidden md:flex items-center gap-2 px-5 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 font-black text-[10px] uppercase tracking-widest"
+  >
+    <History size={14} /> Archives
+  </button>
+</div>
+
+          <div className="relative group w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={14} />
+            <input
+              type="text"
+              placeholder="Filter Buffer..."
+              className="font-roboto-condensed bg-white/[0.03] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-[11px] outline-none focus:border-cyan-500/50 transition-all w-full uppercase tracking-widest"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </header>
 
-        {/* STAT TILES: Scaled down padding/text */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <StatTile label="Events (24h)" value={data.today_anomalies} color="cyan" />
-          <StatTile label="Max Risk Index" value={`${data.data.length > 0 ? Math.max(...data.data.map(d => d.risk_score || 0)) : 0}%`} color="red" />
+        {/* STAT TILES */}
+        <div className="grid grid-cols-2 gap-3">
+          <StatTile label="Events" value={data.today_anomalies} color="cyan" />
+          <StatTile label="Risk" value={`${data.data.length > 0 ? Math.max(...data.data.map(d => d.risk_score || 0)) : 0}%`} color="red" />
         </div>
 
-        {/* FEED LIST: Tighter rows */}
-        <div className="space-y-2 cyber-scroll max-h-[70vh] overflow-y-auto pr-2">
+        {/* FEED LIST */}
+        <div className="space-y-2 cyber-scroll">
           {filteredData.length === 0 ? (
-            <div className="py-20 text-center border border-dashed border-white/5 rounded-3xl text-slate-600 text-[11px] uppercase tracking-widest">
-              Risks nominal. No behavioural deviations.
+            <div className="py-20 text-center border border-dashed border-white/5 rounded-3xl text-slate-600 text-[10px] uppercase tracking-widest">
+              ~ System Nominal ~
             </div>
           ) : (
             filteredData.map((log) => (
               <motion.div 
                 key={log.event_id}
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                onClick={() => { setSelectedLog(log); setShowRawLog(false); fetchGhostData(log); }}
-                className="group bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-md transition-all cursor-pointer"
+                onClick={() => { setSelectedLog(log); setShowRawLog(false); }}
+                className="group bg-white/[0.02] border border-white/5 active:bg-white/[0.05] p-3 md:p-4 rounded-2xl flex items-center justify-between gap-3 backdrop-blur-md transition-all cursor-pointer"
               >
-                <div className="flex items-center gap-5 flex-1 min-w-0 w-full">
-                   <div className={`p-3 rounded-xl border shrink-0 ${log.risk_score > 80 ? 'border-red-500/30 bg-red-500/5 text-red-500' : 'border-cyan-500/30 bg-cyan-500/5 text-cyan-400'}`}>
-                      <Fingerprint size={20} />
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                   <div className={`p-2.5 rounded-lg border shrink-0 ${log.risk_score > 80 ? 'border-red-500/30 bg-red-500/10 text-red-500' : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400'}`}>
+                      <Fingerprint size={18} />
                    </div>
                    <div className="min-w-0 flex-1">
-                      <h4 className="text-base font-black text-white uppercase tracking-tight group-hover:text-cyan-400 transition-colors truncate">
-                        {log.process || 'SYSTEM_CORE'}
-                      </h4>
-                      <p className="font-jetbrains text-[9px] text-slate-500 truncate uppercase mt-0.5">
-                        {log.summary || 'Deviation event recorded'}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2 opacity-50">
-                          <div className="flex items-center gap-1.5">
-                            <Clock size={10}/>
-                            <span className="font-roboto-condensed text-[9px]">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 font-jetbrains text-[9px] truncate">
-                            <Binary size={10}/>
-                            <span className="truncate">{log.process_chain?.[0]}...</span>
-                          </div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-black text-white uppercase tracking-tight truncate">{log.process || 'SYSTEM'}</h4>
+                        <span className={`text-[9px] font-bold font-mono ${log.risk_score > 80 ? 'text-red-500' : 'text-cyan-500'}`}>{log.risk_score}%</span>
                       </div>
+                      <p className="font-jetbrains text-[8px] text-slate-500 truncate uppercase mt-0.5">{log.summary}</p>
                    </div>
                 </div>
-
-                <div className="flex items-center gap-6 shrink-0">
-                   <div className="text-right hidden sm:block">
-                      <p className="text-[8px] font-black text-slate-600 uppercase mb-1 tracking-widest">Risk</p>
-                      <div className="flex items-center gap-3">
-                          <div className="w-20 h-1 bg-white/5 rounded-full overflow-hidden">
-                              <div className={`h-full ${log.risk_score > 80 ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: `${log.risk_score}%` }} />
-                          </div>
-                          <span className={`text-[11px] font-black font-jetbrains ${log.risk_score > 80 ? 'text-red-400' : 'text-cyan-400'}`}>{log.risk_score}%</span>
-                      </div>
-                   </div>
-                   <ChevronRight size={18} className="text-slate-700 group-hover:text-cyan-500 transition-all" />
-                </div>
+                <ChevronRight size={16} className="text-slate-700" />
               </motion.div>
             ))
           )}
         </div>
 
-        {/* DETAIL MODAL: Scaled for density */}
+        {/* MOBILE FLOATING HISTORY BUBBLE */}
+        <div className="md:hidden fixed bottom-32 right-6 z-[2000]">
+          <button
+            onClick={() => navigate(`/clients/${hostname}/client-anomaly/history`)}
+            className="w-16 h-16 flex items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-purple-800 text-white shadow-[0_10px_30px_rgba(168,85,247,0.3)] active:scale-90 relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-40" />
+            <History size={26} strokeWidth={2.5} />
+            <div className="absolute inset-0 rounded-full border border-white/20 animate-pulse" />
+          </button>
+        </div>
+
+        {/* DETAIL MODAL (Bottom Sheet for Mobile) */}
         <AnimatePresence>
           {selectedLog && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm">
               <div className="absolute inset-0" onClick={() => setSelectedLog(null)} />
-              <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
-                className="bg-slate-950 border border-white/10 w-full max-w-4xl max-h-[85vh] rounded-3xl overflow-hidden flex flex-col relative z-[260] shadow-2xl"
+              <motion.div 
+                initial={isMobile ? { y: "100%" } : { scale: 0.95 }} 
+                animate={isMobile ? { y: 0 } : { scale: 1 }} 
+                exit={isMobile ? { y: "100%" } : { scale: 0.95 }}
+                className="bg-[#030712] border-t md:border border-white/10 w-full md:max-w-2xl max-h-[90vh] rounded-t-[2rem] md:rounded-[2rem] overflow-hidden flex flex-col relative z-[1010]"
               >
-                {/* Modal Header */}
-                <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl border ${selectedLog.risk_score > 80 ? "border-red-500/50 text-red-500" : "border-cyan-500/50 text-cyan-400"}`}>
-                      <Fingerprint size={20} />
-                    </div>
-                    <h2 className="text-lg font-black uppercase text-white truncate">{selectedLog.process}</h2>
-                  </div>
+                <div className="md:hidden w-12 h-1 bg-white/10 rounded-full mx-auto mt-3 mb-1" />
+                <div className="p-5 border-b border-white/5 flex justify-between items-center">
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setShowRawLog(!showRawLog)} className="text-[9px] font-black uppercase px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all">
-                      {showRawLog ? "UI HUD" : "Raw Data"}
-                    </button>
-                    <X className="text-slate-500 hover:text-white cursor-pointer" size={20} onClick={() => setSelectedLog(null)} />
+                    <Fingerprint size={18} className={selectedLog.risk_score > 80 ? "text-red-500" : "text-cyan-400"} />
+                    <h2 className="text-sm font-black uppercase text-white truncate max-w-[200px]">{selectedLog.process}</h2>
                   </div>
+                  <X className="text-slate-500 cursor-pointer" size={20} onClick={() => setSelectedLog(null)} />
                 </div>
-
-                {/* Modal Body */}
-                <div className="p-6 space-y-6 overflow-y-auto cyber-scroll">
-                  {showRawLog ? (
-                    <pre className="text-[10px] text-cyan-400/80 bg-black/40 p-4 rounded-xl font-mono overflow-x-auto">
-                      {JSON.stringify(selectedLog, null, 2)}
-                    </pre>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white/[0.02] p-5 rounded-2xl border border-white/5">
-                          <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">Risk Level</p>
-                          <p className="text-4xl font-black text-white">{selectedLog.risk_score}%</p>
-                        </div>
-                        <div className="bg-white/[0.02] p-5 rounded-2xl border border-white/5">
-                          <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">Timestamp</p>
-                          <p className="text-lg font-bold text-white">{new Date(selectedLog.timestamp).toLocaleString()}</p>
-                        </div>
+                <div className="p-5 space-y-4 overflow-y-auto cyber-scroll pb-10">
+                   <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                        <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Risk Index</p>
+                        <p className={`text-2xl font-black ${selectedLog.risk_score > 80 ? 'text-red-500' : 'text-cyan-400'}`}>{selectedLog.risk_score}%</p>
                       </div>
-                      
-                      <div className="bg-white/[0.02] p-5 rounded-2xl border border-white/5">
-                        <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Cpu size={12} /> Exec Path</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedLog.process_chain?.map((p, i) => (
-                            <span key={i} className="text-[10px] bg-white/5 px-2 py-1 rounded border border-white/5 text-slate-300 font-mono">{p}</span>
-                          ))}
-                        </div>
+                      <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5">
+                        <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Time_Log</p>
+                        <p className="text-xs font-bold text-white leading-tight">{new Date(selectedLog.timestamp).toLocaleTimeString()}</p>
                       </div>
-                    </div>
-                  )}
+                   </div>
                 </div>
               </motion.div>
             </motion.div>
@@ -234,13 +187,10 @@ const AnomalyClients = ({ setLoading, setError }) => {
 };
 
 const StatTile = ({ label, value, color }) => (
-  <div className="p-6 bg-white/[0.01] border border-white/5 rounded-3xl shadow-xl backdrop-blur-3xl transition-all hover:bg-white/[0.03] group overflow-hidden relative">
+  <div className="p-4 bg-white/[0.01] border border-white/5 rounded-2xl shadow-xl relative overflow-hidden">
     <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-    <div className="flex items-center gap-3 mb-2">
-        <div className={`h-2 w-2 rounded-full ${color === 'cyan' ? 'bg-cyan-500' : 'bg-red-500'}`} />
-        <p className="font-roboto-condensed text-[10px] font-black uppercase text-slate-500 tracking-[0.3em]">{label}</p>
-    </div>
-    <p className={`font-jetbrains text-4xl font-black tracking-tighter ${color === 'cyan' ? 'text-cyan-400' : 'text-red-500'}`}>{value}</p>
+    <p className="font-roboto-condensed text-[8px] font-black uppercase text-slate-500 tracking-widest mb-1">{label}</p>
+    <p className={`font-jetbrains text-2xl font-black tracking-tighter ${color === 'cyan' ? 'text-cyan-400' : 'text-red-500'}`}>{value}</p>
   </div>
 );
 
