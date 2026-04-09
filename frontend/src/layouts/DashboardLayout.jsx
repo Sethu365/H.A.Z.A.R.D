@@ -4,42 +4,32 @@ import { Outlet } from "react-router-dom";
 
 export default function DashboardLayout() {
   return (
-    <div className="h-screen w-screen flex bg-[#020617] text-slate-200 font-inter overflow-hidden">
-      {/* SIDEBAR - Fixed width, stays on the left */}
-      <Sidebar />
-
-      {/* MAIN COLUMN */}
-      <div className="flex flex-col flex-1 min-w-0 relative">
-        
-        {/* TOP BACKGROUND GRADIENT ACCENT (Subtle Glow) */}
-        <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
-
-        {/* CONTENT AREA */}
-        <main
-          className="
-            flex-1
-            overflow-y-auto
-            px-4 md:px-10 
-            py-8
-            bg-transparent
-            cyber-scroll 
-            relative 
-            z-10
-            selection:bg-cyan-500/30
-          "
-        >
-          {/* The max-w-7xl ensures that on huge screens, 
-             the dashboard doesn't "spread out" too far, 
-             maintaining the tactical HUD density.
-          */}
-          <div className="max-w-[1440px] mx-auto w-full">
-            <Outlet />
-          </div>
-
-          {/* Optional Footer Space for mobile accessibility */}
-          <div className="h-20 md:hidden" />
-        </main>
+    /* GLOBAL WRAPPER 
+       - p-5: Consistent outer margin for the whole application.
+       - gap-6: The specific gutter between the sidebar and content.
+    */
+    <div className="h-screen w-screen flex p-5 gap-6 bg-[#020617] text-slate-200 font-inter overflow-hidden">
+      
+      {/* SIDEBAR BLOCK 
+          Defined only by its width and natural boundaries.
+      */}
+      <div className="h-full w-64 flex-shrink-0">
+        <Sidebar />
       </div>
+
+      {/* MAIN CONTENT BLOCK 
+          Simply displays the content within the right-hand column.
+      */}
+      <main className="flex-1 min-w-0 h-full overflow-y-auto cyber-scroll selection:bg-cyan-500/30">
+        {/* Internal density wrapper: 
+           Prevents content from stretching too wide on 4K monitors while 
+           staying perfectly aligned to the left of its block. 
+        */}
+        <div className="max-w-[1600px] w-full py-2">
+          <Outlet />
+        </div>
+      </main>
+
     </div>
   );
 }

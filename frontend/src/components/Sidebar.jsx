@@ -4,8 +4,7 @@ import { motion } from "framer-motion";
 import eyeLogo from "../assets/eye.png";
 import {
   Users, AlertTriangle, Settings, Activity, Info,
-  Terminal, GitBranch, FolderOpen, ChevronLeft, Command, OctagonAlert,
-  Cpu, ShieldCheck, Zap
+  Terminal, GitBranch, FolderOpen, ChevronLeft, Command, OctagonAlert
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -36,12 +35,13 @@ const Sidebar = () => {
     <motion.aside
       initial={{ x: -100 }}
       animate={{ x: 0 }}
-      className="fixed left-0 top-0 h-screen w-20 hover:w-64 group transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] bg-[#020617] border-r border-white/5 flex flex-col z-[100] overflow-hidden"
+      /* CHANGED: Fixed width w-64, removed hover classes and group */
+      className="fixed left-0 top-0 h-screen w-64 bg-[#020617] border-r border-white/5 flex flex-col z-[100] overflow-hidden"
     >
       {/* VERTICAL ACCENT LINE */}
       <div className="absolute right-0 top-0 h-full w-[1px] bg-gradient-to-b from-transparent via-cyan-500/20 to-transparent" />
 
-      {/* LOGO SECTION - SKELETAL DESIGN */}
+      {/* LOGO SECTION */}
       <div className="flex flex-col items-center py-10 relative">
         <div 
           className="relative cursor-pointer group/logo"
@@ -54,25 +54,26 @@ const Sidebar = () => {
           />
           <div className="absolute -inset-4 bg-cyan-500/5 blur-2xl rounded-full group-hover/logo:bg-cyan-500/20 transition-all" />
         </div>
-        <div className="mt-6 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
+        {/* CHANGED: Always visible opacity-100 */}
+        <div className="mt-6 transition-all duration-500">
           <h1 className="font-roboto-condensed text-[10px] font-black tracking-[0.8em] text-cyan-500 uppercase italic">
             AURORA
           </h1>
         </div>
       </div>
 
-      {/* NAVIGATION - MODULAR BLOCKS */}
-      <nav className="flex-1 px-3 py-6 space-y-2 cyber-scroll overflow-y-auto overflow-x-hidden">
+      {/* NAVIGATION */}
+      <nav className="flex-1 px-4 py-6 space-y-2 cyber-scroll overflow-y-auto overflow-x-hidden">
         
-        {/* RETURN / EXIT MODULE - HIGH CONTRAST */}
+        {/* RETURN / EXIT MODULE */}
         <button
           onClick={() => hostname ? navigate('/clients') : navigate('/')}
           className="relative flex items-center w-full h-12 mb-10 rounded-xl overflow-hidden group/btn transition-all active:scale-95"
         >
           <div className="absolute inset-0 bg-white group-hover/btn:bg-cyan-400 transition-colors" />
-          <div className="relative flex items-center justify-center group-hover:justify-start gap-4 w-full px-4 text-[#020617]">
+          <div className="relative flex items-center justify-start gap-4 w-full px-4 text-[#020617]">
             <ChevronLeft className="w-5 h-5 shrink-0 group-hover:-translate-x-1 transition-transform" />
-            <span className="hidden group-hover:block font-roboto-condensed text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+            <span className="font-roboto-condensed text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
               {hostname ? "UPLINK_EXIT" : "SYSTEM_HOME"}
             </span>
           </div>
@@ -93,14 +94,14 @@ const Sidebar = () => {
               `}
             >
               {/* ACTIVE INDICATOR LINE */}
-              <NavLink 
-                to={path} 
-                className={({ isActive }) => `absolute left-0 w-1 h-6 rounded-r-full transition-all duration-500 ${isActive ? 'bg-cyan-500' : 'bg-transparent'}`} 
-              />
+              {location.pathname === path && (
+                <div className="absolute left-0 w-1 h-6 bg-cyan-500 rounded-r-full transition-all duration-500" />
+              )}
               
-              <div className="flex items-center justify-center group-hover:justify-start gap-5 w-full px-5">
+              <div className="flex items-center justify-start gap-5 w-full px-5">
                 <Icon className={`w-5 h-5 shrink-0 transition-all duration-500 group-hover/link:text-cyan-400 ${location.pathname === path ? 'text-cyan-400' : 'text-gray-500'}`} />
-                <span className={`hidden group-hover:block font-roboto-condensed text-[11px] font-bold uppercase tracking-[0.2em] whitespace-nowrap transition-colors ${location.pathname === path ? 'text-white' : 'text-gray-500 group-hover/link:text-gray-300'}`}>
+                {/* CHANGED: Label always visible */}
+                <span className={`font-roboto-condensed text-[11px] font-bold uppercase tracking-[0.2em] whitespace-nowrap transition-colors ${location.pathname === path ? 'text-white' : 'text-gray-500 group-hover/link:text-gray-300'}`}>
                   {label}
                 </span>
               </div>
@@ -112,20 +113,22 @@ const Sidebar = () => {
         </div>
       </nav>
 
-      {/* FOOTER STATUS - SYSTEM TELEMETRY LOOK */}
-      <div className="p-3 border-t border-white/5 bg-black/20">
-        <div className="flex flex-col items-center group-hover:items-start p-3 rounded-xl border border-white/5 transition-all">
+      {/* FOOTER STATUS */}
+      <div className="p-4 border-t border-white/5 bg-black/20">
+        <div className="flex flex-col items-start p-4 rounded-xl border border-white/5 transition-all">
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <div className="absolute w-4 h-4 rounded-full border border-green-500/50 animate-ping" />
             </div>
-            <span className="hidden group-hover:block font-roboto-condensed text-[9px] font-black uppercase text-green-500 tracking-[0.2em]">
+            {/* CHANGED: Always visible */}
+            <span className="font-roboto-condensed text-[9px] font-black uppercase text-green-500 tracking-[0.2em]">
               Link_Established
             </span>
           </div>
           
-          <div className="hidden group-hover:block mt-4 space-y-2 w-full">
+          {/* CHANGED: Container always visible */}
+          <div className="mt-4 space-y-2 w-full">
             <div className="flex items-center justify-between text-[8px] font-jetbrains text-gray-600 uppercase">
               <span>Node_ID</span>
               <span className="text-gray-400">{hostname ? hostname.slice(0, 8) : "ROOT"}</span>
