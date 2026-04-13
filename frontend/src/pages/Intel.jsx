@@ -201,9 +201,9 @@ const Intel = ({ setLoading, setError }) => {
                   className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-[10px] font-jetbrains uppercase tracking-widest text-white outline-none focus:border-cyan-500/50 transition-all"
                 />
              </div>
-             <button onClick={() => setShowDirectInput(!showDirectInput)} className="flex items-center gap-2 px-6 py-2.5 bg-white text-black rounded-xl font-roboto-condensed font-bold text-[10px] uppercase tracking-widest hover:bg-cyan-400 transition-all">
+             {/* <button onClick={() => setShowDirectInput(!showDirectInput)} className="flex items-center gap-2 px-6 py-2.5 bg-white text-black rounded-xl font-roboto-condensed font-bold text-[10px] uppercase tracking-widest hover:bg-cyan-400 transition-all">
                 <Crosshair size={14} /> Direct_Acquire
-             </button>
+             </button> */}
           </div>
         </header>
 

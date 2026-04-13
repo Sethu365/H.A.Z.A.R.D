@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -22,6 +23,8 @@ import TimescaleLogs from "./pages/TimescaleLogs";
 import MongoLogs from "./pages/MongoLogs";
 import Settings from "./pages/Settings";
 import Intel from "./pages/Intel";
+import ClusterDashboard from "./pages/ClusterDashboard";
+import ClientClusterDashboard from "./pages/ClientClusterDashboard";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -59,6 +62,7 @@ function App() {
               <Route path="docker-settings" element={<DockerSettings {...loaderProps} />} />
               <Route path="timescale-logs" element={<TimescaleLogs {...loaderProps} />} />
               <Route path="mongo-logs" element={<MongoLogs {...loaderProps} />} />
+              <Route path="cluster" element={<ClusterDashboard {...loaderProps} compactLayout title="Cluster Pro" />} />
               
               {/* Global Anomalies */}
               <Route path="anomalies" element={<Anomalies {...loaderProps} />} />
@@ -72,11 +76,13 @@ function App() {
               <Route path="clients/:hostname/file-explorer" element={<FileExplorer {...loaderProps} />} />
               <Route path="clients/:hostname/client-anomaly" element={<ClientAnomaly {...loaderProps} />} />
               <Route path="clients/:hostname/client-anomaly/history" element={<ClientAnomalyHistory {...loaderProps} />} />
-              
+              <Route path="clients/:hostname/cluster" element={<ClientClusterDashboard {...loaderProps} />} />
+
               {/* Utilities */}
               <Route path="settings" element={<Settings {...loaderProps} />} />
               <Route path="scraper" element={<Intel {...loaderProps} />} />
             </Route>
+
           </Routes>
         </Router>
       )}
@@ -85,5 +91,3 @@ function App() {
 }
 
 export default App;
-
-
