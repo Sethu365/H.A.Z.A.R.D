@@ -21,7 +21,7 @@ const Sidebar = ({ onOpenTerminal }) => {
     { path: "/", icon: Activity, label: "Dashboard" },    
     { path: "/clients", icon: Users, label: "Clients" },
     { path: "/anomalies", icon: AlertTriangle, label: "Anomalies" },
-    { path: "/scraper", icon: Command, label: "Intel" },
+    { path: "/scraper", icon: Command, label: "Hypothesis Engine" },
     { path: "/cluster", icon: ChartScatter, label: "Cluster" },
     // { path: "/settings", icon: Settings, label: "Settings" },
   ];
@@ -29,10 +29,10 @@ const Sidebar = ({ onOpenTerminal }) => {
   const clientNavItems = hostname ? [
     { path: `/clients/${hostname}`, icon: Info, label: "Details", end: true },
     { path: `/clients/${hostname}/control`, icon: Terminal, label: "Console" },
-    { path: `/clients/${hostname}/process-tree`, icon: GitBranch, label: "Tree" },
+    // { path: `/clients/${hostname}/process-tree`, icon: GitBranch, label: "Tree" },
     { path: `/clients/${hostname}/file-explorer`, icon: FolderOpen, label: "Files" },
-      { path: `/clients/${hostname}/cluster`, icon: ChartScatter, label: "Cluster" },
-    { path: `/clients/${hostname}/client-anomaly`, icon: OctagonAlert, label: "Alerts" }
+    //   { path: `/clients/${hostname}/cluster`, icon: ChartScatter, label: "Cluster" },
+    // { path: `/clients/${hostname}/client-anomaly`, icon: OctagonAlert, label: "Alerts" }
   ] : [];
 
   const activeNavItems = hostname ? clientNavItems : mainNavItems;
@@ -205,14 +205,37 @@ const Sidebar = ({ onOpenTerminal }) => {
       </AnimatePresence>
 
       {/* --- TOP RIGHT FORENSIC NOTCH --- */}
+{/* --- MOBILE TOP-RIGHT FORENSIC NOTCH (Translucent) --- */}
       <div className="lg:hidden fixed top-0 right-0 z-[100] flex justify-end">
         <button
           onClick={() => navigate("/")}
-          className="group relative flex items-center gap-3 px-5 py-2.5 bg-[#020617]/80 backdrop-blur-2xl border-x border-b border-white/10 rounded-bl-[1.2rem] shadow-2xl active:scale-95 pointer-events-auto"
+          className="
+            group relative flex items-center gap-3 px-5 py-3 
+            bg-white/[0.03] backdrop-blur-[32px] saturate-[1.8]
+            border-l border-b border-white/10 rounded-bl-[1.5rem] 
+            shadow-[0_10px_30px_rgba(0,0,0,0.5)] 
+            active:scale-95 pointer-events-auto
+            overflow-hidden
+          "
         >
-          <div className="absolute inset-x-0 top-0 h-[2px] bg-cyan-500/40 blur-[1px]" />
-          <img src={eyeLogo} alt="AURORA" className="w-4 h-4 brightness-150" />
-          <span className="font-roboto-condensed text-[9px] font-black uppercase tracking-[0.2em] text-white">AURORA</span>
+          {/* Surface Gloss Streak */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none" />
+          
+          {/* Top cyan neon line */}
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-cyan-500/30 blur-[0.5px]" />
+
+          <img 
+            src={eyeLogo} 
+            alt="AURORA" 
+            className="w-4 h-4 brightness-125 opacity-80 group-hover:opacity-100 transition-opacity" 
+          />
+          
+          <span className="font-roboto-condensed text-[9px] font-black uppercase tracking-[0.25em] text-white/70 group-hover:text-white transition-colors">
+            AURORA
+          </span>
+
+          {/* Bottom Right Decorative "Corner" Dot */}
+          <div className="absolute bottom-1 right-1 w-0.5 h-0.5 bg-cyan-500/40 rounded-full" />
         </button>
       </div>
        <SshTerminal

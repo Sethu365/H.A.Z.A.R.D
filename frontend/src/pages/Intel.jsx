@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldAlert, Globe, Fingerprint, Database, Search, 
   ChevronRight, ExternalLink, Activity, Info, X, Zap, 
   Terminal, Target, Radar, Cpu, Newspaper,
   Map as MapIcon, Orbit, BrainCircuit, Loader2, Sparkles, GitMerge, Share2, ListFilter,
-  Crosshair, ChevronLeft 
+  Crosshair, ChevronLeft, Play, Scan
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,7 +16,23 @@ const API_BASE = "http://172.24.16.81:8001";
 /* -------------------------------------------------------------------------- */
 const ForensicView = ({ analysisData }) => {
   const data = analysisData || {};
-  const chain = data.attack_chain || [];
+  
+  // --- UNIQUE SEQUENCE LOGIC ---
+  // We use a Set to track seen descriptions to ensure the sequence doesn't repeat phases
+  const chain = useMemo(() => {
+    const rawChain = data.attack_chain || [];
+    const seenDescriptions = new Set();
+    
+    return rawChain.filter(step => {
+      const desc = step.description?.trim();
+      if (!desc || seenDescriptions.has(desc)) {
+        return false; // Skip if empty or already exists
+      }
+      seenDescriptions.add(desc);
+      return true;
+    });
+  }, [data.attack_chain]);
+
   const techniques = data.techniques || [];
   const keywords = data.keywords || [];
   const flow = data.attack_flow || [];
@@ -42,11 +58,22 @@ const ForensicView = ({ analysisData }) => {
         {chain.length > 0 ? (
           <div className="relative border-l border-white/10 ml-4 pl-8 space-y-10">
             {chain.map((step, idx) => (
-              <motion.div key={idx} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="relative">
+              <motion.div 
+                key={idx} 
+                initial={{ opacity: 0, x: -10 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                transition={{ delay: idx * 0.1 }} // Nice staggered entrance
+                className="relative"
+              >
                 <div className="absolute -left-[41px] top-0 h-4 w-4 rounded-full bg-[#05070a] border-2 border-cyan-500 shadow-[0_0_10px_#06b6d4]" />
                 <div className="flex flex-col gap-1">
-                  <span className="font-roboto-condensed text-[9px] text-cyan-500/60 font-bold uppercase tracking-widest">Op_Phase_0{step.step_number || idx + 1}</span>
-                  <p className="font-inter text-sm font-medium text-slate-200 leading-relaxed">{step.description}</p>
+                  {/* We use idx + 1 for clean sequential numbering even if the source data is messy */}
+                  <span className="font-roboto-condensed text-[9px] text-cyan-500/60 font-bold uppercase tracking-widest">
+                    Op_Phase_0{idx + 1}
+                  </span>
+                  <p className="font-inter text-sm font-medium text-slate-200 leading-relaxed">
+                    {step.description}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -117,56 +144,169 @@ const Intel = ({ setLoading, setError }) => {
   const [selectedThreat, setSelectedThreat] = useState(null);
   const [analysisData, setAnalysisData] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  const [showDirectInput, setShowDirectInput] = useState(false);
-  const [directId, setDirectId] = useState("");
+  
+  // NEW STATES FOR ENGINE CONTROL
+  const [engineRunning, setEngineRunning] = useState(false);
+  const [statusMessage, setStatusMessage] = useState({ text: "", type: "" }); // types: success, error, neutral
+  const [scanning, setScanning] = useState(false);
 
-  const fetchIntel = async (view, isInitial = false) => {
-    if (isInitial) { setLoading(true); setError(null); }
+  // Helper to show on-screen status instead of alert
+  const showStatus = (text, type = "neutral") => {
+    setStatusMessage({ text, type });
+    // Auto-clear after 5 seconds
+    setTimeout(() => setStatusMessage({ text: "", type: "" }), 5000);
+  };
+
+  // Check Engine Status from backend
+  const checkEngineStatus = async () => {
     try {
-      const res = await fetch(`${API_BASE}/intel/dashboard?view=${view}`);
-      const result = await res.json();
-      setIntelData(result);
-      if (isInitial) setLoading(false);
-    } catch (err) { 
-      if (isInitial) { setLoading(false); setError("Master Intel Registry Offline"); }
+      const res = await fetch(`${API_BASE}/detect/stats`);
+      const stats = await res.json();
+      setEngineRunning(stats.running);
+    } catch (err) {
+      console.error("Failed to poll engine stats");
     }
   };
 
+  // Poll engine status every 5 seconds
+  useEffect(() => {
+    checkEngineStatus();
+    const interval = setInterval(checkEngineStatus, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // START/STOP Logic
+  const handleToggleEngine = async () => {
+    const endpoint = engineRunning ? 'stop' : 'start';
+    try {
+      const res = await fetch(`${API_BASE}/detect/${endpoint}`, { method: 'POST' });
+      const result = await res.json();
+      
+      if (result.status === 'success' || result.status === 'warning') {
+        setEngineRunning(!engineRunning);
+        showStatus(result.message, "success");
+      }
+    } catch (err) {
+      showStatus(`ENGINE_ERR: ${err.message}`, "error");
+    }
+  };
+
+  // Scan Once Logic
+  const handleScanOnce = async () => {
+    setScanning(true);
+    showStatus("INITIALIZING_SINGLE_SCAN...", "neutral");
+    try {
+      const res = await fetch(`${API_BASE}/detect/run-once`, { method: 'POST' });
+      const result = await res.json();
+      if (result.status === 'success') {
+        showStatus(`SCAN_COMPLETE: ${result.events_processed} EVENTS_SCRUBBED`, "success");
+      }
+    } catch (err) {
+      showStatus("SCAN_FAILURE", "error");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+// --- ADD THIS FUNCTION BACK ---
   const fetchThreatDetail = async (id) => {
     if (!id) return;
     setDetailsLoading(true);
-    setSelectedThreat({});
+    setSelectedThreat({}); // Placeholder to trigger overlay
     setAnalysisData(null);
-    setShowDirectInput(false);
 
     try {
       const [detailRes, analysisRes] = await Promise.all([
         fetch(`${API_BASE}/intel/threat/${id}`),
         fetch(`${API_BASE}/intel/threat/${id}/analysis`)
       ]);
+      
       const detailResult = await detailRes.json();
       const analysisResult = await analysisRes.json();
+      
       setSelectedThreat(detailResult);
       setAnalysisData(analysisResult.analysis);
     } catch (err) { 
       setSelectedThreat(null);
-      alert(`UPLINK_FAILURE: Threat ID ${id} is not present.`);
+      showStatus(`UPLINK_FAILURE: THREAT_ID_${id}_NOT_FOUND`, "error");
+      console.error("Detail Fetch Error:", err);
     } finally {
       setDetailsLoading(false);
     }
   };
 
+  const fetchIntel = async (view, isInitial = false) => {
+    if (isInitial) { 
+      setLoading(true); 
+      setError(null); 
+    }
+    try {
+      const res = await fetch(`${API_BASE}/intel/dashboard?view=${view}`);
+      const result = await res.json();
+      setIntelData(result);
+      if (isInitial) setLoading(false);
+    } catch (err) { 
+      if (isInitial) { 
+        setLoading(false); 
+        setError("Master Intel Registry Offline"); 
+      }
+      console.error("Dashboard Fetch Error:", err);
+    }
+  };
   useEffect(() => { fetchIntel(activeView, true); }, [activeView]);
 
-  const filteredData = intelData.data.filter((item) => {
-    const searchStr = searchTerm.toLowerCase();
-    return (item.title?.toLowerCase().includes(searchStr)) ||
-           (item.cve_id?.toLowerCase().includes(searchStr)) ||
-           (item.ip?.toLowerCase().includes(searchStr));
-  });
+  const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 12; // Set your limit here (e.g., 6 or 9)
+
+    // Reset page when view or search changes
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [activeView, searchTerm]);
+
+    // Handle filtering
+    const filteredData = useMemo(() => {
+      const s = searchTerm.toLowerCase();
+      return intelData.data.filter(item => 
+        (item.title?.toLowerCase().includes(s)) || 
+        (item.cve_id?.toLowerCase().includes(s)) || 
+        (item.ip?.toLowerCase().includes(s))
+      );
+    }, [intelData.data, searchTerm]);
+
+    // Calculate Sliced Data
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const currentData = filteredData.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white font-inter selection:bg-cyan-500/30">
+    <div className="min-h-screen bg-[#020617] text-white font-inter selection:bg-cyan-500/30 relative">
+      
+      {/* ON-SCREEN STATUS NOTIFICATION HUD */}
+<AnimatePresence>
+  {statusMessage.text && (
+    <motion.div 
+      // Ensure the horizontal center is maintained during the entire lifecycle
+      initial={{ opacity: 0, y: -20, x: "-50%" }}
+      animate={{ opacity: 1, y: 0, x: "-50%" }}
+      exit={{ opacity: 0, scale: 0.95, x: "-50%" }}
+      // Use "fixed left-1/2" to position the anchor point in the middle
+      className="fixed top-6 left-1/2 z-[10000] pointer-events-none"
+    >
+      <div className={`px-6 py-3 rounded-2xl border backdrop-blur-xl flex items-center gap-3 shadow-2xl whitespace-nowrap
+        ${statusMessage.type === 'error' ? 'bg-red-500/10 border-red-500/50 text-red-400' : 
+          statusMessage.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 
+          'bg-cyan-500/10 border-cyan-500/50 text-cyan-400'}`}
+      >
+        <Activity size={16} className={statusMessage.type === 'neutral' ? 'animate-pulse' : ''} />
+        <span className="font-jetbrains text-[10px] font-bold uppercase tracking-[0.2em]">
+          {statusMessage.text}
+        </span>
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
       <main className="pt-8 md:pt-12 pb-20 px-4 md:px-12 w-full space-y-6 md:space-y-10 transition-all duration-500">
         
         {/* HEADER SECTION: Responsive switch */}
@@ -181,7 +321,7 @@ const Intel = ({ setLoading, setError }) => {
             </button>
             
             <div className="text-center md:text-left md:ml-16">
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase">Intel Matrix</h1>
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase">Hypothesis Engine</h1>
               {/* Description Only for Laptop */}
               <p className="hidden md:block font-roboto-condensed text-[10px] font-bold text-cyan-500/60 uppercase tracking-[0.2em] mt-1">
                 OSINT_Threat_Aggregator_Mesh
@@ -201,11 +341,33 @@ const Intel = ({ setLoading, setError }) => {
                   className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-2.5 pl-11 pr-4 text-[10px] font-jetbrains uppercase tracking-widest text-white outline-none focus:border-cyan-500/50 transition-all"
                 />
              </div>
-             {/* <button onClick={() => setShowDirectInput(!showDirectInput)} className="flex items-center gap-2 px-6 py-2.5 bg-white text-black rounded-xl font-roboto-condensed font-bold text-[10px] uppercase tracking-widest hover:bg-cyan-400 transition-all">
-                <Crosshair size={14} /> Direct_Acquire
-             </button> */}
+             {/* TOGGLE ENGINE BUTTON */}
+             <button 
+               onClick={handleToggleEngine}
+               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-roboto-condensed font-bold text-[10px] uppercase tracking-widest transition-all active:scale-95 border
+                 ${engineRunning 
+                   ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30' 
+                   : 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30'}`}
+             >
+               {engineRunning ? <X size={14} /> : <Play size={14} />}
+               {engineRunning ? 'Stop_Engine' : 'Start_Engine'}
+             </button>
           </div>
         </header>
+
+        {/* MOBILE TOGGLE ENGINE */}
+        <div className="md:hidden flex gap-2">
+          <button 
+            onClick={handleToggleEngine}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-roboto-condensed font-bold text-[10px] uppercase tracking-widest transition-all active:scale-95 border
+              ${engineRunning 
+                ? 'bg-red-500/20 border-red-500/40 text-red-400' 
+                : 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'}`}
+          >
+            {engineRunning ? <X size={14} /> : <Play size={14} />}
+            {engineRunning ? 'Stop_Engine' : 'Start_Engine'}
+          </button>
+        </div>
 
         {/* MOBILE SEARCH (Visible only on mobile to keep header clean) */}
         <div className="md:hidden relative w-full group">
@@ -229,7 +391,7 @@ const Intel = ({ setLoading, setError }) => {
         </div>
 
         {/* VIEW SELECTOR: Condensed for mobile */}
-<div className="w-full flex justify-center my-6 md:my-8 px-4">
+        <div className="w-full flex justify-center my-6 md:my-8 px-4">
           <div className="relative flex items-center w-full max-w-[500px] md:w-auto md:max-w-none bg-[#030712]/60 p-1 md:p-1.5 rounded-[1.2rem] border border-white/5 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)]">
             {["threats", "cves", "ips"].map((view) => {
               const isActive = activeView === view;
@@ -292,50 +454,87 @@ const Intel = ({ setLoading, setError }) => {
         </div>
 
         {/* DATA GRID */}
-{/* DATA GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 pb-10">
-          {intelData.data.filter(item => {
-            const s = searchTerm.toLowerCase();
-            return (item.title?.toLowerCase().includes(s)) || (item.cve_id?.toLowerCase().includes(s)) || (item.ip?.toLowerCase().includes(s));
-          }).map((item, i) => (
-            <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="group bg-white/[0.02] border border-white/5 active:border-cyan-500/40 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] transition-all relative cursor-pointer active:scale-[0.98]"
-              onClick={() => {
-                // LOGIC: Threats view opens detail on both, but heading handles direct link on laptop
-                if (activeView === 'threats') {
-                  fetchThreatDetail(item.id);
-                } else if (item.link) {
-                  window.open(item.link, '_blank');
-                }
-              }}
-            >
-               <div className="space-y-4 md:space-y-6">
-                  <div className="flex justify-between items-center">
-                    <Terminal size={16} className="text-gray-600 group-hover:text-cyan-400" />
-                    <div className={`h-1.5 w-1.5 rounded-full ${getSeverityStyles(item.severity || 'LOW', true)}`} />
-                  </div>
-                  <div className="min-w-0">
-                      {/* LAPTOP: Link active | MOBILE: Plain text (Detail handles link) */}
-                      <h2 
-                        onClick={(e) => {
-                          if (window.innerWidth >= 768 && item.link) {
-                            e.stopPropagation();
-                            window.open(item.link, '_blank');
-                          }
-                        }}
-                        className={`text-lg md:text-2xl font-bold tracking-tighter text-white uppercase truncate ${window.innerWidth >= 768 ? 'hover:text-cyan-400 transition-colors' : ''}`}
-                      >
-                        {item.title || item.cve_id || item.ip}
-                      </h2>
-                      <p className="font-roboto-condensed text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2">{item.source || 'OSINT'}</p>
-                  </div>
-               </div>
-            </motion.div>
-          ))}
-        </div>
+{/* DATA GRID with PAGE LIMITER */}
+        <div className="space-y-10 pb-20">
+          <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-3 gap-4 md:gap-6">
+            {currentData.map((item, i) => (
+              <motion.div 
+                key={item.id} 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="group bg-white/[0.02] border border-white/5 active:border-cyan-500/40 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] transition-all relative cursor-pointer active:scale-[0.98]"
+                onClick={() => fetchThreatDetail(item.id)}
+              >
+                <div className="space-y-4 md:space-y-6">
+                    <div className="flex justify-between items-center">
+                      <Terminal size={16} className="text-gray-600 group-hover:text-cyan-400" />
+                      <div className={`h-1.5 w-1.5 rounded-full ${getSeverityStyles(item.severity || 'LOW', true)}`} />
+                    </div>
+                    <div className="min-w-0">
+                        <h2 className="font-inter text-lg md:text-2xl font-bold text-white uppercase truncate max-w-[220px] md:max-w-xl">
+                          {item.title || item.cve_id || item.ip}
+                        </h2>
+                        <p className="font-roboto-condensed text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2">{item.source || 'OSINT'}</p>
+                    </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
 
+          {/* --- TACTICAL PAGINATION HUD --- */}
+          {totalPages > 1 && (
+            <div className="flex flex-col items-center gap-6 pt-10 border-t border-white/5">
+              <div className="flex items-center gap-2">
+                <button 
+                  disabled={currentPage === 1}
+                  onClick={() => { setCurrentPage(prev => prev - 1); window.scrollTo({top: 0, behavior: 'smooth'}); }}
+                  className="p-3 rounded-xl bg-white/5 border border-white/10 disabled:opacity-20 disabled:grayscale text-cyan-400 active:scale-90 transition-all"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+
+                <div className="flex items-center gap-1.5 px-4">
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    const isCurrent = currentPage === pageNum;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => { setCurrentPage(pageNum); window.scrollTo({top: 0, behavior: 'smooth'}); }}
+                        className={`w-10 h-10 rounded-xl font-jetbrains text-[10px] transition-all border ${
+                          isCurrent 
+                          ? 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.3)]' 
+                          : 'bg-white/5 border-white/10 text-gray-500 hover:text-white hover:border-white/20'
+                        }`}
+                      >
+                        {pageNum.toString().padStart(2, '0')}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button 
+                  disabled={currentPage === totalPages}
+                  onClick={() => { setCurrentPage(prev => prev + 1); window.scrollTo({top: 0, behavior: 'smooth'}); }}
+                  className="p-3 rounded-xl bg-white/5 border border-white/10 disabled:opacity-20 disabled:grayscale text-cyan-400 active:scale-90 transition-all"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="h-px w-12 bg-white/10" />
+                <span className="font-roboto-condensed text-[9px] font-bold text-gray-600 uppercase tracking-[0.3em]">
+                  Registry_Page_{currentPage}_of_{totalPages}
+                </span>
+                <div className="h-px w-12 bg-white/10" />
+              </div>
+            </div>
+          )}
+        </div>
         {/* FORENSIC OVERLAY (Full-screen for mobile) */}
-<AnimatePresence>
+        <AnimatePresence>
           {selectedThreat && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-[9999] bg-black/95 md:bg-black/90 md:backdrop-blur-xl flex items-end md:items-center justify-center p-0 md:p-12"
@@ -356,13 +555,33 @@ const Intel = ({ setLoading, setError }) => {
                           <Fingerprint size={28} />
                         </div>
                         <div className="min-w-0">
-                          <h2 className="font-inter text-lg md:text-2xl font-bold text-white uppercase truncate max-w-[220px] md:max-w-xl">
-                            {selectedThreat?.threat?.title || "Data_Buffer"}
-                          </h2>
+                         <h2 
+                onClick={() => {
+                  if (window.innerWidth >= 768 && selectedThreat?.threat?.link) {
+                    window.open(selectedThreat.threat.link, '_blank');
+                  }
+                }}
+                className={`text-lg md:text-2xl font-bold uppercase truncate max-w-[220px] md:max-w-xl transition-all duration-300 ${
+                  window.innerWidth >= 768 && selectedThreat?.threat?.link 
+                  ? 'hover:text-cyan-400 cursor-pointer' 
+                  : 'text-white'
+                }`}
+              >
+                {selectedThreat?.threat?.title || "Investigation_Subject"}
+              </h2>
                           <p className="font-roboto-condensed text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">Investigation_Module</p>
                         </div>
                     </div>
-                    <button onClick={() => setSelectedThreat(null)} className="p-2 md:p-3 hover:bg-white/5 rounded-full"><X size={24} /></button>
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <button 
+                        onClick={handleScanOnce}
+                        disabled={scanning}
+                        className="hidden md:flex items-center gap-2 px-4 py-2 bg-orange-500/20 border border-orange-500/40 text-orange-400 rounded-xl font-roboto-condensed font-bold text-[10px] uppercase tracking-widest hover:bg-orange-500/30 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+                      >
+                        <Scan size={14} /> Scan_Once
+                      </button>
+                      <button onClick={() => setSelectedThreat(null)} className="p-2 md:p-3 hover:bg-white/5 rounded-full"><X size={24} /></button>
+                    </div>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-6 md:p-10 cyber-scroll space-y-8 md:space-y-12">
@@ -383,11 +602,19 @@ const Intel = ({ setLoading, setError }) => {
                   </div>
 
                   {/* MOBILE-ONLY STICKY ACTION BAR */}
-                  <div className="md:hidden p-4 bg-white/[0.02] border-t border-white/5 backdrop-blur-xl shrink-0">
+                  <div className="md:hidden p-4 bg-white/[0.02] border-t border-white/5 backdrop-blur-xl shrink-0 space-y-2">
+                    <button 
+                      onClick={handleScanOnce}
+                      disabled={scanning}
+                      className="w-full flex items-center justify-center gap-3 bg-orange-500 text-black py-3 rounded-xl font-roboto-condensed font-black text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_rgba(234,88,12,0.2)] active:scale-[0.97] transition-all disabled:opacity-50 disabled:grayscale"
+                    >
+                      <Scan size={16} strokeWidth={3} />
+                      Scan_Once
+                    </button>
                     <button 
                       onClick={() => selectedThreat?.threat?.link && window.open(selectedThreat.threat.link, '_blank')}
                       disabled={!selectedThreat?.threat?.link}
-                      className="w-full flex items-center justify-center gap-3 bg-cyan-500 text-black py-4 rounded-2xl font-roboto-condensed font-black text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_rgba(6,182,212,0.2)] active:scale-[0.97] transition-all disabled:opacity-50 disabled:grayscale"
+                      className="w-full flex items-center justify-center gap-3 bg-cyan-500 text-black py-3 rounded-xl font-roboto-condensed font-black text-xs uppercase tracking-[0.2em] shadow-[0_10px_20px_rgba(6,182,212,0.2)] active:scale-[0.97] transition-all disabled:opacity-50 disabled:grayscale"
                     >
                       <ExternalLink size={16} strokeWidth={3} />
                       Source_Intel_Portal

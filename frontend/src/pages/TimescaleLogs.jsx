@@ -57,19 +57,24 @@ const TimescaleLogs = () => {
     fetchLogs();
   }, [limit, offset]);
 
-  const rateData = (logs) => {
-    const buckets = {};
-    logs.forEach((row) => {
-      if (!row.event_time) return;
-      const t = new Date(row.event_time);
-      t.setSeconds(0, 0);
-      const key = t.getTime();
-      buckets[key] = (buckets[key] || 0) + 1;
-    });
-    return Object.entries(buckets)
-      .map(([time, count]) => ({ time: Number(time), count }))
-      .sort((a, b) => a.time - b.time);
-  };
+const rateData = (logs) => {
+  const buckets = {};
+  logs.forEach((row) => {
+    const rawTime = row.event_time || row.payload?.timestamp;
+    if (!rawTime) return;
+
+    const t = new Date(rawTime);
+    // Round to the nearest second instead of the nearest minute
+    t.setMilliseconds(0); 
+    
+    const key = t.getTime();
+    buckets[key] = (buckets[key] || 0) + 1;
+  });
+  
+  return Object.entries(buckets)
+    .map(([time, count]) => ({ time: Number(time), count }))
+    .sort((a, b) => a.time - b.time);
+};
 
   const chartData = rateData(logs);
 
@@ -182,36 +187,52 @@ const TimescaleLogs = () => {
                 <tbody className="divide-y divide-white/5 font-jetbrains text-[12px]">
                   {loading && !hasLoaded ? (
                     <tr><td colSpan={3} className="py-20 text-center animate-pulse">Establishing_Link...</td></tr>
-                  ) : logs.map((row, idx) => (
-                    <React.Fragment key={idx}>
-                      <tr className={`hover:bg-white/[0.02] transition-colors group ${expandedRow === idx ? 'bg-white/[0.03]' : ''}`}>
-                        <td className="px-8 py-5 text-gray-400 font-medium">{new Date(row.event_time).toLocaleString()}</td>
-                        <td className="px-8 py-5 text-center">
-                          <span className="px-4 py-1.5 rounded-xl bg-cyan-500/5 border border-cyan-500/10 text-cyan-400 font-bold uppercase tracking-tighter">
-                            {row.hostname || "UNKNOWN_NODE"}
-                          </span>
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          <button onClick={() => setExpandedRow(expandedRow === idx ? null : idx)} className={`inline-flex items-center gap-3 px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${expandedRow === idx ? 'bg-white text-black' : 'bg-white/5 text-gray-500 hover:text-white border border-white/5'}`}>
-                            {expandedRow === idx ? "Collapse" : "Decode"} <Terminal size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                      {expandedRow === idx && (
-                        <tr>
-                          <td colSpan={3} className="bg-black/60 p-0">
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-10 py-8 border-y border-cyan-500/10">
-                              <div className="flex items-center justify-between mb-6">
-                                <p className="font-roboto-condensed text-[10px] font-black uppercase text-cyan-500 tracking-widest leading-none">Forensic_Data_Packet</p>
-                                <button onClick={() => navigator.clipboard.writeText(JSON.stringify(row.original_payload, null, 2))} className="flex items-center gap-2 px-5 py-2.5 bg-cyan-500/10 rounded-xl text-[10px] font-black text-cyan-400 uppercase tracking-widest active:scale-95"><Copy size={12} /> Copy_Hex</button>
-                              </div>
-                              <pre className="font-jetbrains text-[12px] text-gray-300 leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-auto cyber-scroll p-6 bg-black/40 rounded-2xl border border-white/5">{JSON.stringify(row.original_payload, null, 3)}</pre>
-                            </motion.div>
+                  ) : logs.map((row, idx) => {
+                    // Determine the best timestamp to show
+                    const displayDate = new Date(row.event_time || row.payload?.timestamp).toLocaleString();
+
+                    return (
+                      <React.Fragment key={row.id || idx}>
+                        <tr className={`hover:bg-white/[0.02] transition-colors group ${expandedRow === idx ? 'bg-white/[0.03]' : ''}`}>
+                          <td className="px-8 py-5 text-gray-400 font-medium">{displayDate}</td>
+                          <td className="px-8 py-5 text-center">
+                            <span className="px-4 py-1.5 rounded-xl bg-cyan-500/5 border border-cyan-500/10 text-cyan-400 font-bold uppercase tracking-tighter">
+                              {row.hostname || "UNKNOWN_NODE"}
+                            </span>
+                          </td>
+                          <td className="px-8 py-5 text-right">
+                            <button 
+                              onClick={() => setExpandedRow(expandedRow === idx ? null : idx)} 
+                              className={`inline-flex items-center gap-3 px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${expandedRow === idx ? 'bg-white text-black' : 'bg-white/5 text-gray-500 hover:text-white border border-white/5'}`}
+                            >
+                              {expandedRow === idx ? "Collapse" : "Decode"} <Terminal size={14} />
+                            </button>
                           </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
+                        {expandedRow === idx && (
+                          <tr>
+                            <td colSpan={3} className="bg-black/60 p-0">
+                              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-10 py-8 border-y border-cyan-500/10">
+                                <div className="flex items-center justify-between mb-6">
+                                  <p className="font-roboto-condensed text-[10px] font-black uppercase text-cyan-500 tracking-widest leading-none">Forensic_Data_Packet</p>
+                                  <button 
+                                    onClick={() => navigator.clipboard.writeText(JSON.stringify(row.payload, null, 2))} 
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-cyan-500/10 rounded-xl text-[10px] font-black text-cyan-400 uppercase tracking-widest active:scale-95"
+                                  >
+                                    <Copy size={12} /> Copy_Hex
+                                  </button>
+                                </div>
+                                {/* FIX: Use row.payload instead of row.original_payload */}
+                                <pre className="font-jetbrains text-[12px] text-gray-300 leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-auto cyber-scroll p-6 bg-black/40 rounded-2xl border border-white/5">
+                                  {JSON.stringify(row.payload, null, 3)}
+                                </pre>
+                              </motion.div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </motion.div>
